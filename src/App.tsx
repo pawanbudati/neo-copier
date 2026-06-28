@@ -33,6 +33,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Ban,
+  Terminal,
+  Download,
 } from "lucide-react";
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
@@ -103,7 +105,7 @@ interface QuoteData {
   prevLtp?: number;
 }
 
-type LeftTab = "accounts" | "search" | "watchlist" | "positions";
+type LeftTab = "accounts" | "search" | "watchlist" | "positions" | "logs";
 
 // ─── Helper: format price ────────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -566,6 +568,13 @@ export default function App() {
   // ── NEW: Left panel tab ───────────────────────────────────────────────────
   const [leftTab, setLeftTab] = useState<LeftTab>("accounts");
 
+  // ── System Logs state ──
+  const [backendLogs, setBackendLogs] = useState<string[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [logFilter, setLogFilter] = useState<"ALL" | "INFO" | "WARN" | "ERROR">("ALL");
+  const [autoRefreshLogs, setAutoRefreshLogs] = useState(true);
+  const logsEndRef = useRef<HTMLDivElement | null>(null);
+
   // ── Positions & Margins States ─────────────────────────────────────────────
   const [margins, setMargins] = useState<any[]>([]);
   const [loadingMargins, setLoadingMargins] = useState(false);
@@ -717,6 +726,29 @@ export default function App() {
     if (leftTab === "positions") {
       fetchMargins();
       fetchPositions();
+    }
+  }, [leftTab]);
+
+  // Logs Auto-refresh polling
+  useEffect(() => {
+    if (leftTab !== "logs" || !autoRefreshLogs) return;
+    const interval = setInterval(() => {
+      fetchLogs();
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [leftTab, autoRefreshLogs]);
+
+  // Scroll logs terminal to bottom
+  useEffect(() => {
+    if (leftTab === "logs" && logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [backendLogs, leftTab]);
+
+  // Fetch logs when logs tab is active
+  useEffect(() => {
+    if (leftTab === "logs") {
+      fetchLogs();
     }
   }, [leftTab]);
 
@@ -1293,6 +1325,38 @@ export default function App() {
     }
   };
 
+  // Fetch backend logs
+  const fetchLogs = async () => {
+    setLoadingLogs(true);
+    try {
+      const r = await fetch("/api/logs?lines=500");
+      if (r.ok) {
+        const d = await r.json();
+        setBackendLogs(d.logs || []);
+      }
+    } catch (_) {
+      showNotification("Failed to fetch backend logs", "error");
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  // Clear backend logs file
+  const handleClearLogs = async () => {
+    if (!confirm("Are you sure you want to clear the backend log file? This cannot be undone.")) return;
+    try {
+      const r = await fetch("/api/logs/clear", { method: "POST" });
+      if (r.ok) {
+        showNotification("Backend logs cleared", "success");
+        setBackendLogs([]);
+      } else {
+        showNotification("Failed to clear logs", "error");
+      }
+    } catch (_) {
+      showNotification("Failed to clear logs", "error");
+    }
+  };
+
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────
@@ -1525,6 +1589,7 @@ export default function App() {
                         { id: "search", label: "Search", icon: Search },
                         { id: "watchlist", label: "Watchlist", icon: Star, badge: watchlist.length },
                         { id: "positions", label: "Positions & Funds", icon: Activity },
+                        { id: "logs", label: "System Logs", icon: Terminal },
                       ] as { id: LeftTab; label: string; icon: any; badge?: number }[]
                     ).map(({ id, label, icon: Icon, badge }) => (
                       <button
@@ -2160,6 +2225,95 @@ export default function App() {
                         })}
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+              {/* ── SYSTEM LOGS TAB ──────────────────────────────────────────── */}
+              {leftTab === "logs" && (
+                <div className="flex flex-col h-full space-y-4 p-4 font-mono">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-slate-400">Filter:</span>
+                      {(["ALL", "INFO", "WARN", "ERROR"] as const).map((filter) => (
+                        <button
+                          key={filter}
+                          onClick={() => setLogFilter(filter)}
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded border cursor-pointer transition-all ${
+                            logFilter === filter
+                              ? "bg-teal-500/10 text-teal-400 border-teal-500/30"
+                              : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                          }`}
+                        >
+                          {filter}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-1.5 text-[10px] text-slate-400 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={autoRefreshLogs}
+                          onChange={(e) => setAutoRefreshLogs(e.target.checked)}
+                          className="accent-teal-500 rounded border-slate-800 bg-slate-900"
+                        />
+                        Auto-Refresh
+                      </label>
+                      
+                      <button
+                        onClick={fetchLogs}
+                        disabled={loadingLogs}
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-[10px] font-semibold cursor-pointer transition-all"
+                      >
+                        {loadingLogs ? "Loading..." : "Refresh"}
+                      </button>
+
+                      <a
+                        href={`${(import.meta.env.VITE_API_URL || "").replace(/\/$/, "")}/api/logs/download`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition-all"
+                      >
+                        <Download className="w-3 h-3" />
+                        Download
+                      </a>
+
+                      <button
+                        onClick={handleClearLogs}
+                        className="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded border border-rose-500/20 text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition-all"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Clear File
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Logs Console Container */}
+                  <div className="flex-1 bg-slate-950 border border-slate-900 rounded-xl p-4 h-[400px] overflow-y-auto space-y-1 text-[11px] leading-relaxed text-left">
+                    {backendLogs.length === 0 ? (
+                      <div className="text-center py-12 text-slate-600 text-xs italic">
+                        {loadingLogs ? "Fetching logs from backend..." : "No logs recorded in file."}
+                      </div>
+                    ) : (
+                      backendLogs
+                        .filter((line) => {
+                          if (logFilter === "ALL") return true;
+                          return line.includes(`[${logFilter}]`);
+                        })
+                        .map((line, idx) => {
+                          let colorClass = "text-slate-400";
+                          if (line.includes("[ERROR]")) colorClass = "text-rose-400 font-semibold";
+                          else if (line.includes("[WARN]")) colorClass = "text-amber-400";
+                          else if (line.includes("[INFO]")) colorClass = "text-slate-300";
+
+                          return (
+                            <div key={idx} className={`${colorClass} whitespace-pre-wrap font-mono`}>
+                              {line}
+                            </div>
+                          );
+                        })
+                    )}
+                    <div ref={logsEndRef} />
                   </div>
                 </div>
               )}
