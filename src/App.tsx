@@ -32,6 +32,7 @@ import {
   ShoppingCart,
   ArrowUpRight,
   ArrowDownRight,
+  Ban,
 } from "lucide-react";
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
@@ -69,7 +70,7 @@ interface TradeOrder {
   orderType: "MARKET" | "LIMIT" | "SL";
   triggerPrice?: number;
   transactionType: "BUY" | "SELL";
-  status: "SUCCESS" | "FAILED" | "PENDING";
+  status: "SUCCESS" | "FAILED" | "PENDING" | "CANCELLED";
   errorMessage: string | null;
   timestamp: string;
 }
@@ -559,6 +560,8 @@ export default function App() {
   const [orderType, setOrderType] = useState<"MARKET" | "LIMIT">("MARKET");
   const [transactionType, setTransactionType] = useState<"BUY" | "SELL">("BUY");
   const [submittingOrder, setSubmittingOrder] = useState(false);
+  const [syncingOrders, setSyncingOrders] = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
   // ── NEW: Left panel tab ───────────────────────────────────────────────────
   const [leftTab, setLeftTab] = useState<LeftTab>("accounts");
@@ -1246,6 +1249,49 @@ export default function App() {
 
   const toggleMasterExpand = (id: string) =>
     setExpandedMasterOrders((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  // Cancel a pending order
+  const handleCancelOrder = async (orderId: string) => {
+    if (!confirm("Are you sure you want to cancel this pending order?")) return;
+    setCancellingOrderId(orderId);
+    try {
+      const r = await fetch(`/api/orders/${orderId}/cancel`, { method: "POST" });
+      const d = await r.json();
+      if (r.ok && d.success) {
+        showNotification(`Order ${orderId} cancelled successfully`, "success");
+        fetchOrders();
+      } else {
+        showNotification(`Cancel failed: ${d.error || "Unknown error"}`, "error");
+      }
+    } catch (_) {
+      showNotification("Failed to cancel order", "error");
+    } finally {
+      setCancellingOrderId(null);
+    }
+  };
+
+  // Sync all pending order statuses from broker
+  const handleSyncOrderStatus = async () => {
+    setSyncingOrders(true);
+    try {
+      const r = await fetch("/api/orders/sync-status", { method: "POST" });
+      const d = await r.json();
+      if (r.ok) {
+        setOrders(d.orders);
+        if (d.updated > 0) {
+          showNotification(`Updated ${d.updated} order(s) from broker`, "success");
+        } else {
+          showNotification("All orders are up to date", "info");
+        }
+      } else {
+        showNotification(`Sync failed: ${d.error || "Unknown error"}`, "error");
+      }
+    } catch (_) {
+      showNotification("Failed to sync order statuses", "error");
+    } finally {
+      setSyncingOrders(false);
+    }
+  };
 
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
@@ -2132,13 +2178,24 @@ export default function App() {
                 Replicated Orders & Copy Logs
               </h2>
             </div>
-            <button
-              onClick={fetchOrders}
-              disabled={loadingOrders}
-              className="p-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 border border-slate-800 text-slate-300 rounded-lg"
-            >
-              <RefreshCw className={`w-4 h-4 ${loadingOrders ? "animate-spin" : ""}`} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSyncOrderStatus}
+                disabled={syncingOrders}
+                className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 border border-amber-500/20 text-amber-400 rounded-lg text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                title="Check broker for updated statuses of pending orders"
+              >
+                <Activity className={`w-3.5 h-3.5 ${syncingOrders ? "animate-pulse" : ""}`} />
+                {syncingOrders ? "Syncing..." : "Sync Status"}
+              </button>
+              <button
+                onClick={fetchOrders}
+                disabled={loadingOrders}
+                className="p-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 border border-slate-800 text-slate-300 rounded-lg"
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingOrders ? "animate-spin" : ""}`} />
+              </button>
+            </div>
           </div>
 
           <div className="p-4 overflow-x-auto">
@@ -2212,13 +2269,29 @@ export default function App() {
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-slate-400">Status:</span>
                             <span
-                              className={`px-2 py-0.5 rounded text-xs font-bold ${mOrder.status === "SUCCESS"
+                              className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                mOrder.status === "SUCCESS"
                                   ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                  : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                                }`}
+                                  : mOrder.status === "PENDING"
+                                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse"
+                                    : mOrder.status === "CANCELLED"
+                                      ? "bg-slate-500/10 text-slate-400 border border-slate-500/20"
+                                      : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                              }`}
                             >
                               {mOrder.status}
                             </span>
+                            {mOrder.status === "PENDING" && (
+                              <button
+                                onClick={() => handleCancelOrder(mOrder.id)}
+                                disabled={cancellingOrderId === mOrder.id}
+                                className="px-2 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+                                title="Cancel this pending order"
+                              >
+                                <Ban className="w-3 h-3" />
+                                {cancellingOrderId === mOrder.id ? "..." : "Cancel"}
+                              </button>
+                            )}
                           </div>
 
                           <button
@@ -2276,13 +2349,29 @@ export default function App() {
                                       </span>
                                     )}
                                     <span
-                                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${sOrder.status === "SUCCESS"
+                                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                        sOrder.status === "SUCCESS"
                                           ? "bg-emerald-500/10 text-emerald-400"
-                                          : "bg-rose-500/10 text-rose-400"
-                                        }`}
+                                          : sOrder.status === "PENDING"
+                                            ? "bg-amber-500/10 text-amber-400 animate-pulse"
+                                            : sOrder.status === "CANCELLED"
+                                              ? "bg-slate-500/10 text-slate-400"
+                                              : "bg-rose-500/10 text-rose-400"
+                                      }`}
                                     >
                                       {sOrder.status}
                                     </span>
+                                    {sOrder.status === "PENDING" && (
+                                      <button
+                                        onClick={() => handleCancelOrder(sOrder.id)}
+                                        disabled={cancellingOrderId === sOrder.id}
+                                        className="px-1.5 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-0.5 cursor-pointer transition-all"
+                                        title="Cancel this pending order"
+                                      >
+                                        <Ban className="w-2.5 h-2.5" />
+                                        {cancellingOrderId === sOrder.id ? "..." : "Cancel"}
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               ))}
