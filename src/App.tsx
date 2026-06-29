@@ -571,7 +571,7 @@ export default function App() {
   const [backendLogs, setBackendLogs] = useState<string[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logFilter, setLogFilter] = useState<"ALL" | "INFO" | "WARN" | "ERROR">("ALL");
-  const [autoRefreshLogs, setAutoRefreshLogs] = useState(true);
+  const [autoRefreshLogs, setAutoRefreshLogs] = useState(false);
   const logsEndRef = useRef<HTMLDivElement | null>(null);
 
   // ── Positions & Margins States ─────────────────────────────────────────────
