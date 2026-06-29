@@ -1415,8 +1415,8 @@ export default function App() {
           {accounts.some((a) => a.role === "master" && a.status === "active") && (
             <div className="flex items-center justify-between xl:justify-start gap-4 bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-xl backdrop-blur-sm shadow-inner overflow-x-auto scrollbar-none max-w-full w-full xl:w-auto">
               {/* NIFTY 50 */}
-              <div className="flex items-center gap-2 pr-4 border-r border-slate-800">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">NIFTY 50</span>
+              <div className="gap-2 pr-4 border-r border-slate-800">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">NIFTY 50</div>
                 {quotes["Nifty 50"] ? (
                   <div className="gap-1.5">
                     <span className="text-xs font-mono font-bold text-slate-100">
@@ -1427,13 +1427,13 @@ export default function App() {
                     </span>
                   </div>
                 ) : (
-                  <span className="text-[10px] text-slate-600 animate-pulse font-medium">loading...</span>
+                  <div className="text-[10px] text-slate-600 animate-pulse font-medium">loading...</div>
                 )}
               </div>
 
               {/* SENSEX */}
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">SENSEX</span>
+              <div className="gap-2">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">SENSEX</div>
                 {quotes["SENSEX"] ? (
                   <div className="gap-1.5">
                     <span className="text-xs font-mono font-bold text-slate-100">
@@ -1444,7 +1444,7 @@ export default function App() {
                     </span>
                   </div>
                 ) : (
-                  <span className="text-[10px] text-slate-600 animate-pulse font-medium">loading...</span>
+                  <div className="text-[10px] text-slate-600 animate-pulse font-medium">loading...</div>
                 )}
               </div>
             </div>
