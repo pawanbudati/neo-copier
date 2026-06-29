@@ -37,6 +37,7 @@ import {
   Download,
   Sun,
   Moon,
+  Power,
 } from "lucide-react";
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
@@ -577,6 +578,7 @@ export default function App() {
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logFilter, setLogFilter] = useState<"ALL" | "INFO" | "WARN" | "ERROR">("ALL");
   const [autoRefreshLogs, setAutoRefreshLogs] = useState(false);
+  const [powerOn, setPowerOn] = useState(true);
 
 
   // ── Positions & Margins States ─────────────────────────────────────────────
@@ -631,7 +633,7 @@ export default function App() {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
-        hour12: false,
+        hour12: true,
       };
       setCurrentTime(now.toLocaleTimeString("en-US", options));
     };
@@ -645,6 +647,7 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     fetchSettings();
+    fetchPowerStatus();
     fetchAccounts();
     fetchOrders();
     fetchWatchlist();
@@ -672,6 +675,10 @@ export default function App() {
   }, []);
 
   const subscribeToTokens = useCallback((tokens: string[]) => {
+    if (!powerOn) {
+      unsubscribeAll();
+      return;
+    }
     // Deduplicate and sort for stable comparison
     const uniqueTokens = [...new Set(tokens.filter(Boolean))];
     if (!uniqueTokens.length) {
@@ -712,7 +719,7 @@ export default function App() {
       } catch (_) { }
     };
     es.onerror = () => setSseConnected(false);
-  }, [unsubscribeAll]);
+  }, [unsubscribeAll, powerOn]);
 
   // Subscribe to watchlist tokens, search result tokens, active positions, plus Nifty and Sensex indices
   useEffect(() => {
@@ -723,7 +730,7 @@ export default function App() {
       : [];
     const allTokens = [...new Set([...watchlistTokens, ...searchTokens, ...positionTokens, "Nifty 50", "SENSEX"])];
     subscribeToTokens(allTokens);
-  }, [watchlist, searchResults, positions, leftTab, subscribeToTokens]);
+  }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn]);
 
   // Fetch margins and positions when positions tab is loaded
   useEffect(() => {
@@ -735,7 +742,7 @@ export default function App() {
 
   // Logs Auto-refresh polling
   useEffect(() => {
-    if (leftTab !== "logs" || !autoRefreshLogs) return;
+    if (leftTab !== "logs" || !autoRefreshLogs || !powerOn) return;
     const interval = setInterval(() => {
       fetchLogs();
     }, 4000);
@@ -829,6 +836,37 @@ export default function App() {
     }
   };
 
+  const fetchPowerStatus = async () => {
+    try {
+      const r = await fetch("/api/system/power");
+      if (r.ok) {
+        const d = await r.json();
+        setPowerOn(d.powerOn);
+      }
+    } catch (_) { }
+  };
+
+  const togglePower = async () => {
+    try {
+      const nextPower = !powerOn;
+      const r = await fetch("/api/system/power", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ powerOn: nextPower }),
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setPowerOn(d.powerOn);
+        showNotification(
+          `System operations ${d.powerOn ? "RESUMED" : "SUSPENDED"}`,
+          d.powerOn ? "success" : "info"
+        );
+      }
+    } catch (_) {
+      showNotification("Failed to toggle system power", "error");
+    }
+  };
+
   const fetchAccounts = async () => {
     setLoadingAccounts(true);
     try {
@@ -852,6 +890,7 @@ export default function App() {
   };
 
   const fetchTotpPreviews = async () => {
+    if (!powerOn) return;
     const accsWithTotp = accounts.filter((a) => a.hasTotpSecret);
     const newPreviews: Record<string, string> = {};
     for (const acc of accsWithTotp) {
@@ -1433,7 +1472,7 @@ export default function App() {
             {/* Clock */}
             <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-mono font-medium text-slate-300">
               <Clock className="w-4 h-4 text-teal-400 animate-pulse" />
-              <span>IST: {currentTime || "09:15:00"}</span>
+              <span>IST: {currentTime || "09:15:00 AM"}</span>
             </div>
 
             {/* Live indicator */}
@@ -1454,7 +1493,7 @@ export default function App() {
                 }`}
             >
               <Zap className="w-4 h-4" />
-              <span>REPLICATOR: {settings.autoReplicate ? "ON" : "OFF"}</span>
+              <span>REPLICATOR</span>
             </button>
 
             {/* Help / Guide Toggle */}
@@ -1467,7 +1506,6 @@ export default function App() {
                 }`}
             >
               <HelpCircle className="w-4 h-4" />
-              <span>{showHelp ? "HIDE GUIDE" : "SHOW GUIDE"}</span>
             </button>
 
             {/* Refresh sessions */}
@@ -1480,6 +1518,19 @@ export default function App() {
             >
               <RefreshCw className={`w-4 h-4 ${refreshingAll ? "animate-spin" : ""}`} />
               <span className="hidden sm:inline">Sync</span>
+            </button>
+
+            {/* Power Toggle */}
+            <button
+              id="power-toggle"
+              onClick={togglePower}
+              className={`p-2 border rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${powerOn
+                ? "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 text-emerald-400"
+                : "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-400 animate-pulse"
+                }`}
+              title={powerOn ? "Suspend all background quote polling (Save GCP bill)" : "Resume all background quote polling"}
+            >
+              <Power className="w-4 h-4" />
             </button>
 
             {/* Theme Toggle */}
@@ -1618,6 +1669,12 @@ export default function App() {
                       </button>
                     ))}
                   </div>
+                  {!powerOn && (
+                    <div className="bg-rose-500/10 border-b border-rose-500/20 px-4 py-2.5 text-xs text-rose-400 flex items-center gap-2 font-semibold">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>Background price quote polling is currently suspended (GCP Save Mode). Click the Power button in the header to resume.</span>
+                    </div>
+                  )}
 
                   {/* Tab-specific action */}
                   {leftTab === "accounts" && (
