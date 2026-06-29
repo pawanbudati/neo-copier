@@ -1682,7 +1682,7 @@ export default function App() {
                             value={nickname}
                             onChange={(e) => setNickname(e.target.value)}
                             placeholder="e.g. Master Trader"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500"
                           />
                         </div>
                         <div>
@@ -1694,7 +1694,7 @@ export default function App() {
                             onChange={(e) =>
                               setRole(e.target.value as "master" | "slave")
                             }
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500"
                           >
                             <option value="slave">Slave (Copier Sub-Account)</option>
                             <option value="master">Master (Main Trader)</option>
@@ -1713,7 +1713,7 @@ export default function App() {
                               setMobileNumber(e.target.value.replace(/\D/g, ""))
                             }
                             placeholder="e.g. 9876543210"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-teal-500"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-teal-500"
                           />
                         </div>
                         <div>
@@ -1726,7 +1726,7 @@ export default function App() {
                             value={ucc}
                             onChange={(e) => setUcc(e.target.value.toUpperCase())}
                             placeholder="e.g. ABC123"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-teal-500"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-teal-500"
                           />
                         </div>
                         <div>
@@ -1741,7 +1741,7 @@ export default function App() {
                               setMpin(e.target.value.replace(/\D/g, ""))
                             }
                             placeholder={editingAccountId ? "••••••" : "e.g. 123456"}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-mono tracking-widest focus:outline-none focus:border-teal-500"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-mono tracking-widest focus:outline-none focus:border-teal-500"
                           />
                         </div>
                         <div>
@@ -1753,7 +1753,7 @@ export default function App() {
                             value={consumerKey}
                             onChange={(e) => setConsumerKey(e.target.value)}
                             placeholder="e.g. your_consumer_key"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-teal-500"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-teal-500"
                           />
                         </div>
                         <div>
@@ -1765,7 +1765,7 @@ export default function App() {
                             value={totpSecret}
                             onChange={(e) => setTotpSecret(e.target.value)}
                             placeholder="e.g. JBSWY3DPEHPK3PXP"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-teal-500 uppercase"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-teal-500 uppercase"
                           />
                         </div>
                         {role === "slave" && (
@@ -1780,7 +1780,7 @@ export default function App() {
                               max="20"
                               value={multiplier}
                               onChange={(e) => setMultiplier(Number(e.target.value))}
-                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500"
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500"
                             />
                           </div>
                         )}
@@ -1912,7 +1912,7 @@ export default function App() {
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           placeholder="Search NIFTY, BANKNIFTY, SENSEX, RELIANCE…"
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-teal-500 placeholder:text-slate-600"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-teal-500 placeholder:text-slate-600"
                         />
                         {isSearching && (
                           <RefreshCw className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-teal-400 animate-spin" />
@@ -1995,7 +1995,7 @@ export default function App() {
                   <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                      <span className="text-sm font-bold text-white">
+                      <span className="text-sm font-bold text-slate-100">
                         My Watchlist
                       </span>
                       <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded font-mono">
@@ -2076,7 +2076,7 @@ export default function App() {
                         {margins.map((m: any) => (
                           <div key={m.accountId} className="bg-slate-900/40 border border-slate-800/60 p-3.5 rounded-xl space-y-3">
                             <div className="flex items-center justify-between border-b border-slate-800/40 pb-1.5">
-                              <span className="text-xs font-bold text-white truncate max-w-[120px]">{m.accountName}</span>
+                              <span className="text-xs font-bold text-slate-100 truncate max-w-[120px]">{m.accountName}</span>
                               <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${m.role === "master"
                                 ? "text-teal-400 bg-teal-400/10 border-teal-500/30"
                                 : "text-amber-400 bg-amber-400/10 border-amber-500/30"
@@ -2151,7 +2151,7 @@ export default function App() {
                               {/* Account Header */}
                               <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold text-white">{acc.accountName}</span>
+                                  <span className="text-sm font-bold text-slate-100">{acc.accountName}</span>
                                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${acc.role === "master"
                                     ? "text-teal-400 bg-teal-400/10 border-teal-500/30"
                                     : "text-amber-400 bg-amber-400/10 border-amber-500/30"
@@ -2186,7 +2186,7 @@ export default function App() {
                                         {/* Instrument & Details */}
                                         <div className="flex-1 min-w-0">
                                           <div className="flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-xs sm:text-sm font-bold text-white font-mono truncate">{p.symbol}</span>
+                                            <span className="text-xs sm:text-sm font-bold text-slate-100 font-mono truncate">{p.symbol}</span>
                                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border text-teal-400 bg-teal-400/10 border-teal-500/20">{p.segment}</span>
                                             <span className="text-[9px] text-slate-400 bg-slate-800 px-1 rounded">{p.exchange}</span>
                                           </div>
@@ -2338,7 +2338,7 @@ export default function App() {
           <div className="px-5 py-4 bg-slate-900/50 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Database className="w-5 h-5 text-teal-400" />
-              <h2 className="text-base font-bold text-white">
+              <h2 className="text-base font-bold text-slate-100">
                 Replicated Orders & Copy Logs
               </h2>
             </div>
@@ -2397,7 +2397,7 @@ export default function App() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h4 className="text-sm font-bold text-white font-mono">
+                              <h4 className="text-sm font-bold text-slate-100 font-mono">
                                 {mOrder.symbol}
                               </h4>
                               <span className="text-[10px] text-slate-500">
@@ -2609,7 +2609,7 @@ function AccountCard({
         </div>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h4 className="text-sm font-bold text-white">{acc.nickname}</h4>
+            <h4 className="text-sm font-bold text-slate-100">{acc.nickname}</h4>
             <span
               className={`w-2 h-2 rounded-full ${acc.status === "active"
                 ? "bg-emerald-500 animate-ping"
