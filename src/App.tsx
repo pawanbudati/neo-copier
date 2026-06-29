@@ -173,8 +173,7 @@ function QuoteCell({ quote, compact = false }: { quote?: QuoteData; compact?: bo
         ) : (
           <ArrowDownRight className="w-3 h-3" />
         )}
-        {isPos ? "+" : ""}
-        {quote.changePct.toFixed(2)}%
+        {isPos ? "+" : ""}{quote.change.toFixed(2)} ({isPos ? "+" : ""}{quote.changePct.toFixed(2)}%)
       </span>
     </div>
   );
@@ -1399,7 +1398,7 @@ export default function App() {
                       {quotes["Nifty 50"].ltp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </span>
                     <span className={`text-[10px] font-bold font-mono flex items-center gap-0.5 ${quotes["Nifty 50"].change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                      {quotes["Nifty 50"].change >= 0 ? "+" : ""}{quotes["Nifty 50"].changePct.toFixed(2)}%
+                      {quotes["Nifty 50"].change >= 0 ? "+" : ""}{quotes["Nifty 50"].change.toFixed(2)} ({quotes["Nifty 50"].change >= 0 ? "+" : ""}{quotes["Nifty 50"].changePct.toFixed(2)}%)
                     </span>
                   </div>
                 ) : (
@@ -1416,7 +1415,7 @@ export default function App() {
                       {quotes["SENSEX"].ltp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </span>
                     <span className={`text-[10px] font-bold font-mono flex items-center gap-0.5 ${quotes["SENSEX"].change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                      {quotes["SENSEX"].change >= 0 ? "+" : ""}{quotes["SENSEX"].changePct.toFixed(2)}%
+                      {quotes["SENSEX"].change >= 0 ? "+" : ""}{quotes["SENSEX"].change.toFixed(2)} ({quotes["SENSEX"].change >= 0 ? "+" : ""}{quotes["SENSEX"].changePct.toFixed(2)}%)
                     </span>
                   </div>
                 ) : (
