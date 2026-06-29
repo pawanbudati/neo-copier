@@ -1505,19 +1505,29 @@ export default function App() {
         {actionStatus && (
           <div
             id="notification-banner"
-            className={`p-4 rounded-xl flex items-start gap-3 border shadow-lg transition-all ${actionStatus.type === "success"
-                ? "bg-teal-950/40 border-teal-500/30 text-teal-300"
+            className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-50 p-4 rounded-xl flex items-start gap-3 border shadow-2xl transition-all max-w-sm sm:max-w-md backdrop-blur-md ${
+              actionStatus.type === "success"
+                ? "bg-teal-950/90 border-teal-500/40 text-teal-300"
                 : actionStatus.type === "error"
-                  ? "bg-rose-950/40 border-rose-500/30 text-rose-300"
-                  : "bg-sky-950/40 border-sky-500/30 text-sky-300"
-              }`}
+                  ? "bg-rose-950/90 border-rose-500/40 text-rose-300"
+                  : "bg-sky-950/90 border-sky-500/40 text-sky-300"
+            }`}
           >
             {actionStatus.type === "success" ? (
               <CheckCircle2 className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
             ) : (
               <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
             )}
-            <p className="text-sm font-medium">{actionStatus.message}</p>
+            <div className="flex-grow">
+              <p className="text-sm font-medium">{actionStatus.message}</p>
+            </div>
+            <button
+              onClick={() => setActionStatus(null)}
+              className="text-slate-400 hover:text-white shrink-0 font-bold ml-1 hover:scale-115 transition-transform"
+              style={{ lineHeight: 1 }}
+            >
+              &times;
+            </button>
           </div>
         )}
 
