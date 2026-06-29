@@ -577,7 +577,7 @@ export default function App() {
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logFilter, setLogFilter] = useState<"ALL" | "INFO" | "WARN" | "ERROR">("ALL");
   const [autoRefreshLogs, setAutoRefreshLogs] = useState(false);
-  const logsEndRef = useRef<HTMLDivElement | null>(null);
+
 
   // ── Positions & Margins States ─────────────────────────────────────────────
   const [margins, setMargins] = useState<any[]>([]);
@@ -742,12 +742,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [leftTab, autoRefreshLogs]);
 
-  // Scroll logs terminal to bottom
-  useEffect(() => {
-    if (leftTab === "logs" && logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [backendLogs, leftTab]);
+
 
   // Fetch logs when logs tab is active
   useEffect(() => {
@@ -2323,7 +2318,7 @@ export default function App() {
                           );
                         })
                     )}
-                    <div ref={logsEndRef} />
+
                   </div>
                 </div>
               )}
