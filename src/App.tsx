@@ -2294,7 +2294,7 @@ export default function App() {
                   </div>
 
                   {/* Logs Console Container */}
-                  <div className="flex-1 bg-slate-950 border border-slate-900 rounded-xl p-4 h-[400px] overflow-y-auto space-y-1 text-[11px] leading-relaxed text-left">
+                  <div className="bg-slate-950 border border-slate-900 rounded-xl p-4 h-[450px] max-h-[450px] overflow-y-auto space-y-1 text-[11px] leading-relaxed text-left">
                     {backendLogs.length === 0 ? (
                       <div className="text-center py-12 text-slate-600 text-xs italic">
                         {loadingLogs ? "Fetching logs from backend..." : "No logs recorded in file."}
