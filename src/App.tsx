@@ -35,6 +35,8 @@ import {
   Ban,
   Terminal,
   Download,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
@@ -209,7 +211,7 @@ function ScripRow({
         {/* Info */}
         <div className="min-w-0 flex-1 lg:flex-initial">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs sm:text-sm font-bold text-white font-mono truncate">
+            <span className="text-xs sm:text-sm font-bold text-slate-100 font-mono truncate">
               {scrip.scripRefKey || scrip.tradingSymbol}
             </span>
             <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${segCls}`}>
@@ -330,15 +332,15 @@ function QuickOrderDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md my-auto overflow-hidden animate-fade-in">
         {/* Header */}
         <div
           className={`px-5 py-4 flex items-center justify-between ${isBuy
-              ? "bg-emerald-500/10 border-b border-emerald-500/20"
-              : "bg-rose-500/10 border-b border-rose-500/20"
+            ? "bg-emerald-500/10 border-b border-emerald-500/20"
+            : "bg-rose-500/10 border-b border-rose-500/20"
             }`}
         >
           <div className="flex items-center gap-3">
@@ -358,7 +360,7 @@ function QuickOrderDialog({
               >
                 {side} Order
               </p>
-              <p className="text-sm font-bold text-white font-mono">
+              <p className="text-sm font-bold text-slate-100 font-mono">
                 {scrip.tradingSymbol}
               </p>
             </div>
@@ -409,7 +411,7 @@ function QuickOrderDialog({
               min={1}
               value={qty}
               onChange={(e) => setQty(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-teal-500"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100 font-mono text-sm focus:outline-none focus:border-teal-500"
             />
           </div>
 
@@ -425,8 +427,8 @@ function QuickOrderDialog({
                   type="button"
                   onClick={() => setOrderType(t)}
                   className={`py-2 rounded-lg text-xs font-bold cursor-pointer transition-all ${orderType === t
-                      ? "bg-teal-500 text-slate-950"
-                      : "text-slate-400 hover:text-slate-200"
+                    ? "bg-teal-500 text-slate-950"
+                    : "text-slate-400 hover:text-slate-200"
                     }`}
                 >
                   {t === "SL" ? "SL-LIMIT" : t}
@@ -445,7 +447,7 @@ function QuickOrderDialog({
                 step="0.05"
                 value={limitPrice}
                 onChange={(e) => setLimitPrice(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-teal-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100 font-mono text-sm focus:outline-none focus:border-teal-500"
               />
             </div>
           )}
@@ -460,7 +462,7 @@ function QuickOrderDialog({
                 step="0.05"
                 value={triggerPrice}
                 onChange={(e) => setTriggerPrice(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-teal-500"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100 font-mono text-sm focus:outline-none focus:border-teal-500"
               />
             </div>
           )}
@@ -499,8 +501,8 @@ function QuickOrderDialog({
               )
             }
             className={`w-full py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-60 ${isBuy
-                ? "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20"
-                : "bg-rose-500 hover:bg-rose-400 text-slate-950 shadow-lg shadow-rose-500/20"
+              ? "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20"
+              : "bg-rose-500 hover:bg-rose-400 text-slate-950 shadow-lg shadow-rose-500/20"
               }`}
           >
             <TrendingUp className="w-4 h-4" />
@@ -535,6 +537,9 @@ export default function App() {
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [theme, setTheme] = useState<"classic" | "modern">(
+    () => (localStorage.getItem("neo-theme") as "classic" | "modern") || "classic"
+  );
   const [expandedMasterOrders, setExpandedMasterOrders] = useState<
     Record<string, boolean>
   >({});
@@ -752,6 +757,10 @@ export default function App() {
   }, [leftTab]);
 
   useEffect(() => unsubscribeAll, [unsubscribeAll]);
+
+  useEffect(() => {
+    localStorage.setItem("neo-theme", theme);
+  }, [theme]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Search — debounced
@@ -1362,39 +1371,21 @@ export default function App() {
   return (
     <div
       id="neo-copier-dashboard"
-      className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-teal-500 selection:text-white"
+      className={`min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-teal-500 selection:text-white transition-colors duration-300 ${theme === "modern" ? "theme-modern" : ""
+        }`}
     >
       {/* ── HEADER ────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-slate-950 border-b border-slate-800 shadow-xl backdrop-blur">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-teal-500 text-slate-950 p-2 rounded-lg font-black tracking-tight flex items-center justify-center shadow-lg shadow-teal-500/20">
-              <ArrowRightLeft className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-white">
-                  NEO COPIER
-                </h1>
-                <span className="text-[10px] font-bold bg-slate-800 text-teal-400 border border-slate-700 px-2 py-0.5 rounded-full">
-                  F&O REPLICATOR
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">
-                Replicate trades from Master to multi-family accounts
-              </p>
-            </div>
-          </div>
-
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col xl:flex-row items-center xl:justify-between gap-3 xl:gap-4">
           {/* Live Index Tickers */}
           {accounts.some((a) => a.role === "master" && a.status === "active") && (
-            <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-xl backdrop-blur-sm shadow-inner">
+            <div className="flex items-center justify-between xl:justify-start gap-4 bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-xl backdrop-blur-sm shadow-inner overflow-x-auto scrollbar-none max-w-full w-full xl:w-auto">
               {/* NIFTY 50 */}
               <div className="flex items-center gap-2 pr-4 border-r border-slate-800">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">NIFTY 50</span>
                 {quotes["Nifty 50"] ? (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-mono font-bold text-white">
+                  <div className="gap-1.5">
+                    <span className="text-xs font-mono font-bold text-slate-100">
                       {quotes["Nifty 50"].ltp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </span>
                     <span className={`text-[10px] font-bold font-mono flex items-center gap-0.5 ${quotes["Nifty 50"].change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
@@ -1410,8 +1401,8 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500">SENSEX</span>
                 {quotes["SENSEX"] ? (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-mono font-bold text-white">
+                  <div className="gap-1.5">
+                    <span className="text-xs font-mono font-bold text-slate-100">
                       {quotes["SENSEX"].ltp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </span>
                     <span className={`text-[10px] font-bold font-mono flex items-center gap-0.5 ${quotes["SENSEX"].change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
@@ -1425,12 +1416,12 @@ export default function App() {
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 md:gap-4 w-full md:w-auto justify-end">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 xl:pb-0 w-full xl:w-auto xl:justify-end whitespace-nowrap">
             {/* SSE Status */}
             <div
               className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border ${sseConnected
-                  ? "bg-teal-500/10 border-teal-500/20 text-teal-400"
-                  : "bg-slate-800 border-slate-700 text-slate-500"
+                ? "bg-teal-500/10 border-teal-500/20 text-teal-400"
+                : "bg-slate-800 border-slate-700 text-slate-500"
                 }`}
               title={sseConnected ? "Live price feed connected" : "Price feed disconnected"}
             >
@@ -1463,12 +1454,12 @@ export default function App() {
               id="replication-toggle"
               onClick={toggleAutoReplicate}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${settings.autoReplicate
-                  ? "bg-teal-500 text-slate-950 font-bold"
-                  : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+                ? "bg-teal-500 text-slate-950 font-bold"
+                : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
                 }`}
             >
               <Zap className="w-4 h-4" />
-              <span>AUTO-REPLICATOR: {settings.autoReplicate ? "ON" : "OFF"}</span>
+              <span>REPLICATOR: {settings.autoReplicate ? "ON" : "OFF"}</span>
             </button>
 
             {/* Help / Guide Toggle */}
@@ -1476,8 +1467,8 @@ export default function App() {
               id="guide-toggle"
               onClick={() => setShowHelp((prev) => !prev)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${showHelp
-                  ? "bg-teal-500 text-slate-950 font-bold"
-                  : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+                ? "bg-teal-500 text-slate-950 font-bold"
+                : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
                 }`}
             >
               <HelpCircle className="w-4 h-4" />
@@ -1493,7 +1484,21 @@ export default function App() {
               title="Refresh sessions for all accounts"
             >
               <RefreshCw className={`w-4 h-4 ${refreshingAll ? "animate-spin" : ""}`} />
-              <span className="hidden sm:inline">Sync Sessions</span>
+              <span className="hidden sm:inline">Sync</span>
+            </button>
+
+            {/* Theme Toggle */}
+            <button
+              id="theme-toggle"
+              onClick={() => setTheme((prev) => (prev === "classic" ? "modern" : "classic"))}
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              title="Toggle theme (Classic Dark vs. Modern Light)"
+            >
+              {theme === "classic" ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-400" />
+              )}
             </button>
           </div>
         </div>
@@ -1504,13 +1509,12 @@ export default function App() {
         {actionStatus && (
           <div
             id="notification-banner"
-            className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-50 p-4 rounded-xl flex items-start gap-3 border shadow-2xl transition-all max-w-sm sm:max-w-md backdrop-blur-md ${
-              actionStatus.type === "success"
-                ? "bg-teal-950/90 border-teal-500/40 text-teal-300"
-                : actionStatus.type === "error"
-                  ? "bg-rose-950/90 border-rose-500/40 text-rose-300"
-                  : "bg-sky-950/90 border-sky-500/40 text-sky-300"
-            }`}
+            className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-50 p-4 rounded-xl flex items-start gap-3 border shadow-2xl transition-all max-w-sm sm:max-w-md backdrop-blur-md ${actionStatus.type === "success"
+              ? "bg-teal-950/90 border-teal-500/40 text-teal-300"
+              : actionStatus.type === "error"
+                ? "bg-rose-950/90 border-rose-500/40 text-rose-300"
+                : "bg-sky-950/90 border-sky-500/40 text-sky-300"
+              }`}
           >
             {actionStatus.type === "success" ? (
               <CheckCircle2 className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
@@ -1590,8 +1594,8 @@ export default function App() {
             <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
               {/* Tab Bar */}
               <div className="border-b border-slate-800 bg-slate-900/50">
-                <div className="flex items-center justify-between px-4 pt-3">
-                  <div className="flex gap-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 pt-3 gap-2">
+                  <div className="flex gap-1 overflow-x-auto scrollbar-none max-w-full pb-1 sm:pb-0 whitespace-nowrap">
                     {(
                       [
                         { id: "accounts", label: "Accounts", icon: Users },
@@ -1604,13 +1608,13 @@ export default function App() {
                       <button
                         key={id}
                         onClick={() => setLeftTab(id)}
-                        className={`px-3 sm:px-4 py-2.5 text-xs font-semibold rounded-t-lg flex items-center gap-1.5 cursor-pointer transition-all border-b-2 ${leftTab === id
-                            ? "text-teal-400 border-teal-500 bg-slate-950"
-                            : "text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-800/50"
+                        className={`px-3 sm:px-4 py-2.5 text-xs font-semibold rounded-t-lg flex items-center gap-1.5 cursor-pointer transition-all border-b-2 shrink-0 ${leftTab === id
+                          ? "text-teal-400 border-teal-500 bg-slate-950"
+                          : "text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-800/50"
                           }`}
                       >
                         <Icon className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">{label}</span>
+                        <span>{label}</span>
                         {badge !== undefined && (
                           <span className="font-mono bg-slate-800 text-[10px] text-slate-300 px-1.5 py-0.5 rounded">
                             {badge}
@@ -2073,11 +2077,10 @@ export default function App() {
                           <div key={m.accountId} className="bg-slate-900/40 border border-slate-800/60 p-3.5 rounded-xl space-y-3">
                             <div className="flex items-center justify-between border-b border-slate-800/40 pb-1.5">
                               <span className="text-xs font-bold text-white truncate max-w-[120px]">{m.accountName}</span>
-                              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${
-                                m.role === "master" 
-                                  ? "text-teal-400 bg-teal-400/10 border-teal-500/30" 
-                                  : "text-amber-400 bg-amber-400/10 border-amber-500/30"
-                              }`}>
+                              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${m.role === "master"
+                                ? "text-teal-400 bg-teal-400/10 border-teal-500/30"
+                                : "text-amber-400 bg-amber-400/10 border-amber-500/30"
+                                }`}>
                                 {m.role ? m.role.toUpperCase() : "SLAVE"}
                               </span>
                             </div>
@@ -2149,11 +2152,10 @@ export default function App() {
                               <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-bold text-white">{acc.accountName}</span>
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                                    acc.role === "master"
-                                      ? "text-teal-400 bg-teal-400/10 border-teal-500/30"
-                                      : "text-amber-400 bg-amber-400/10 border-amber-500/30"
-                                  }`}>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${acc.role === "master"
+                                    ? "text-teal-400 bg-teal-400/10 border-teal-500/30"
+                                    : "text-amber-400 bg-amber-400/10 border-amber-500/30"
+                                    }`}>
                                     {acc.role ? acc.role.toUpperCase() : "SLAVE"}
                                   </span>
                                 </div>
@@ -2188,7 +2190,7 @@ export default function App() {
                                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border text-teal-400 bg-teal-400/10 border-teal-500/20">{p.segment}</span>
                                             <span className="text-[9px] text-slate-400 bg-slate-800 px-1 rounded">{p.exchange}</span>
                                           </div>
-                                          
+
                                           {/* Position Quantity / Avg Rates details */}
                                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-[10px] text-slate-400">
                                             <div>NET QTY: <span className={`font-semibold font-mono ${p.netQty > 0 ? "text-emerald-400" : p.netQty < 0 ? "text-rose-400" : "text-slate-400"}`}>{p.netQty}</span></div>
@@ -2247,11 +2249,10 @@ export default function App() {
                         <button
                           key={filter}
                           onClick={() => setLogFilter(filter)}
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded border cursor-pointer transition-all ${
-                            logFilter === filter
-                              ? "bg-teal-500/10 text-teal-400 border-teal-500/30"
-                              : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
-                          }`}
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded border cursor-pointer transition-all ${logFilter === filter
+                            ? "bg-teal-500/10 text-teal-400 border-teal-500/30"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                            }`}
                         >
                           {filter}
                         </button>
@@ -2268,7 +2269,7 @@ export default function App() {
                         />
                         Auto-Refresh
                       </label>
-                      
+
                       <button
                         onClick={fetchLogs}
                         disabled={loadingLogs}
@@ -2386,8 +2387,8 @@ export default function App() {
                         <div className="flex items-start gap-3">
                           <div
                             className={`p-2 rounded-lg ${mOrder.transactionType === "BUY"
-                                ? "bg-emerald-500/10 text-emerald-400"
-                                : "bg-rose-500/10 text-rose-400"
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : "bg-rose-500/10 text-rose-400"
                               }`}
                           >
                             <span className="text-xs font-black uppercase tracking-wider">
@@ -2432,15 +2433,14 @@ export default function App() {
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-slate-400">Status:</span>
                             <span
-                              className={`px-2 py-0.5 rounded text-xs font-bold ${
-                                mOrder.status === "SUCCESS"
-                                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                  : mOrder.status === "PENDING"
-                                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse"
-                                    : mOrder.status === "CANCELLED"
-                                      ? "bg-slate-500/10 text-slate-400 border border-slate-500/20"
-                                      : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                              }`}
+                              className={`px-2 py-0.5 rounded text-xs font-bold ${mOrder.status === "SUCCESS"
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                : mOrder.status === "PENDING"
+                                  ? "bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse"
+                                  : mOrder.status === "CANCELLED"
+                                    ? "bg-slate-500/10 text-slate-400 border border-slate-500/20"
+                                    : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                }`}
                             >
                               {mOrder.status}
                             </span>
@@ -2512,15 +2512,14 @@ export default function App() {
                                       </span>
                                     )}
                                     <span
-                                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                        sOrder.status === "SUCCESS"
-                                          ? "bg-emerald-500/10 text-emerald-400"
-                                          : sOrder.status === "PENDING"
-                                            ? "bg-amber-500/10 text-amber-400 animate-pulse"
-                                            : sOrder.status === "CANCELLED"
-                                              ? "bg-slate-500/10 text-slate-400"
-                                              : "bg-rose-500/10 text-rose-400"
-                                      }`}
+                                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${sOrder.status === "SUCCESS"
+                                        ? "bg-emerald-500/10 text-emerald-400"
+                                        : sOrder.status === "PENDING"
+                                          ? "bg-amber-500/10 text-amber-400 animate-pulse"
+                                          : sOrder.status === "CANCELLED"
+                                            ? "bg-slate-500/10 text-slate-400"
+                                            : "bg-rose-500/10 text-rose-400"
+                                        }`}
                                     >
                                       {sOrder.status}
                                     </span>
@@ -2613,8 +2612,8 @@ function AccountCard({
             <h4 className="text-sm font-bold text-white">{acc.nickname}</h4>
             <span
               className={`w-2 h-2 rounded-full ${acc.status === "active"
-                  ? "bg-emerald-500 animate-ping"
-                  : "bg-slate-500"
+                ? "bg-emerald-500 animate-ping"
+                : "bg-slate-500"
                 }`}
             />
             <span className="text-[10px] text-slate-400">({acc.mobileNumber})</span>
@@ -2629,10 +2628,10 @@ function AccountCard({
               Status:{" "}
               <strong
                 className={`uppercase ${acc.status === "active"
-                    ? "text-emerald-400"
-                    : acc.status === "error"
-                      ? "text-rose-400"
-                      : "text-slate-400"
+                  ? "text-emerald-400"
+                  : acc.status === "error"
+                    ? "text-rose-400"
+                    : "text-slate-400"
                   }`}
               >
                 {acc.status}

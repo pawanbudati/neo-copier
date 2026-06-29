@@ -1,1 +1,62 @@
 @import "tailwindcss";
+
+@layer base {
+  /* Prevent browser tap highlight color overlays on mobile devices */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent browser auto-zoom on input focus on mobile devices (requires >= 16px font-size) */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  @media (min-width: 1024px) {
+    input,
+    select,
+    textarea {
+      font-size: 14px !important;
+    }
+  }
+
+  .theme-modern {
+    /* Map Slate Colors to Zinc Light-mode Colors */
+    --color-slate-950: #ffffff;      /* Cards and sticky header background (pure white) */
+    --color-slate-900: #f4f4f5;      /* Main page background (light zinc-100) */
+    --color-slate-800: #e4e4e7;      /* Dividers/borders/gridlines (zinc-200) */
+    --color-slate-700: #d4d4d8;      /* Secondary borders/input boundaries (zinc-300) */
+    --color-slate-600: #a1a1aa;      /* Placeholder text/disabled elements (zinc-400) */
+    --color-slate-500: #71717a;      /* Muted text (zinc-500) */
+    --color-slate-400: #52525b;      /* Secondary text (zinc-600) */
+    --color-slate-300: #3f3f46;      /* Semi-dark text (zinc-700) */
+    --color-slate-200: #27272a;      /* Standard body/content text (zinc-800) */
+    --color-slate-100: #09090b;      /* Major headings, title and bold text (zinc-950) */
+
+    /* Map Teal Colors to Indigo Brand Colors */
+    --color-teal-500: #4f46e5;      /* Primary interactive buttons/badges (indigo-600) */
+    --color-teal-600: #4338ca;      /* Interactive hover state (indigo-700) */
+    --color-teal-400: #6366f1;      /* Highlights and highlights accents (indigo-500) */
+    --color-teal-950: #e0e7ff;      /* Success/Highlight pill backgrounds (indigo-100) */
+
+    /* Focus Accents */
+    --color-teal-500\/30: rgba(79, 70, 229, 0.3);
+    --color-teal-500\/20: rgba(79, 70, 229, 0.2);
+  }
+
+  .theme-modern input,
+  .theme-modern select,
+  .theme-modern textarea {
+    color: var(--color-slate-100) !important;
+  }
+}
+
+/* Utility to hide scrollbars on scrollable panels while keeping swipe functionality */
+@utility scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  &::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+}
