@@ -658,7 +658,6 @@ export default function App() {
 
   useEffect(() => {
     if (accounts.length > 0) fetchTotpPreviews();
-    fetchScripStatus();
   }, [accounts]);
 
   // ─────────────────────────────────────────────────────────────────────────
