@@ -53,6 +53,9 @@ interface AccountSummary {
   lastLogin: string | null;
   errorMessage: string | null;
   createdAt: string;
+  consumerKey?: string;
+  mpin?: string;
+  totpSecret?: string;
   hasConsumerKey: boolean;
   hasTotpSecret: boolean;
   hasAutoTotpSecret: boolean;
@@ -1098,9 +1101,9 @@ export default function App() {
     setMobileNumber(acc.mobileNumber);
     setUcc(acc.ucc);
     setMultiplier(acc.multiplier);
-    setMpin("");
-    setConsumerKey("");
-    setTotpSecret("");
+    setMpin(acc.mpin || "");
+    setConsumerKey(acc.consumerKey || "");
+    setTotpSecret(acc.totpSecret || "");
     setShowAddForm(true);
     setLeftTab("accounts");
   };
