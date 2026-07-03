@@ -687,7 +687,8 @@ export default function App() {
 
     const sorted = uniqueTokens.sort().join(",");
     const prevSorted = [...new Set(sseTokensRef.current)].sort().join(",");
-    if (sorted === prevSorted && sseRef.current?.readyState === EventSource.OPEN) return;
+    const currentReadyState = sseRef.current?.readyState;
+    if (sorted === prevSorted && (currentReadyState === EventSource.OPEN || currentReadyState === EventSource.CONNECTING)) return;
 
     // Close existing
     if (sseRef.current) {
