@@ -111,6 +111,23 @@ interface QuoteData {
   prevLtp?: number;
 }
 
+interface ScripCategory {
+  key: string;
+  label: string;
+  exchange: string;
+  segment: string;
+  count: number;
+  isLoaded: boolean;
+  url?: string;
+}
+
+interface ScripStatusState {
+  loaded: boolean;
+  totalCount: number;
+  categories: ScripCategory[];
+  count?: number;
+}
+
 type LeftTab = "accounts" | "search" | "watchlist" | "positions" | "logs";
 
 // ─── Helper: format price ────────────────────────────────────────────────────
@@ -519,6 +536,174 @@ function QuickOrderDialog({
     </div>
   );
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// ScripManagerModal Component
+// ─────────────────────────────────────────────────────────────────────────────
+interface ScripManagerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  scripStatus: ScripStatusState;
+  loadingCategoryKey: string | null;
+  clearingCategoryKey: string | null;
+  isLoadingAll: boolean;
+  hasActiveAccount: boolean;
+  onLoadCategory: (key?: string) => void;
+  onClearCategory: (key?: string) => void;
+}
+
+const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
+  isOpen,
+  onClose,
+  scripStatus,
+  loadingCategoryKey,
+  clearingCategoryKey,
+  isLoadingAll,
+  hasActiveAccount,
+  onLoadCategory,
+  onClearCategory,
+}) => {
+  if (!isOpen) return null;
+
+  const categories = scripStatus.categories || [];
+  const totalCount = scripStatus.totalCount ?? scripStatus.count ?? 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl my-auto overflow-hidden animate-fade-in">
+        {/* Header */}
+        <div className="px-6 py-4 bg-slate-800/60 border-b border-slate-700/60 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                Scrip Master Manager
+                <span className="text-xs px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 font-mono font-medium">
+                  {totalCount.toLocaleString()} loaded
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                Selectively download or clear scrip categories from Kotak Securities
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Global Toolbar */}
+        <div className="px-6 py-3 bg-slate-950/40 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="text-slate-400">
+            {!hasActiveAccount && (
+              <span className="text-amber-400 font-medium flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" /> Login an active account to download scrips
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onLoadCategory()}
+              disabled={isLoadingAll || !hasActiveAccount}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 font-medium transition disabled:opacity-50"
+            >
+              <Download className={`w-3.5 h-3.5 ${isLoadingAll ? "animate-spin" : ""}`} />
+              {isLoadingAll ? "Downloading All..." : "Load All Categories"}
+            </button>
+            <button
+              type="button"
+              onClick={() => onClearCategory()}
+              disabled={isLoadingAll || totalCount === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 font-medium transition disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Clear All Scrips
+            </button>
+          </div>
+        </div>
+
+        {/* Category List */}
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-[60vh] overflow-y-auto">
+          {categories.map((cat) => {
+            const isLoadingThis = loadingCategoryKey === cat.key;
+            const isClearingThis = clearingCategoryKey === cat.key;
+
+            return (
+              <div
+                key={cat.key}
+                className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition flex flex-col justify-between space-y-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-100">{cat.label}</h4>
+                    <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+                      <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono font-bold">
+                        {cat.exchange}
+                      </span>
+                      <span>{cat.segment}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {cat.isLoaded ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-medium">
+                        <CheckCircle2 className="w-3 h-3" />
+                        {cat.count.toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-medium">
+                        Not Loaded
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-800/60">
+                  <button
+                    type="button"
+                    onClick={() => onLoadCategory(cat.key)}
+                    disabled={isLoadingThis || isClearingThis || !hasActiveAccount}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-semibold transition disabled:opacity-50"
+                  >
+                    <Download className={`w-3.5 h-3.5 ${isLoadingThis ? "animate-spin" : ""}`} />
+                    {isLoadingThis ? "Loading..." : "Load File"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onClearCategory(cat.key)}
+                    disabled={isLoadingThis || isClearingThis || !cat.isLoaded}
+                    className="inline-flex items-center justify-center p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 border border-slate-700 hover:border-rose-500/30 text-xs transition disabled:opacity-30"
+                    title={`Clear ${cat.label} from DB`}
+                  >
+                    <Trash2 className={`w-3.5 h-3.5 ${isClearingThis ? "animate-spin" : ""}`} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+          <span>Updates stored directly in PostgreSQL database</span>
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium transition"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
@@ -596,7 +781,14 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ScripInfo[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [scripStatus, setScripStatus] = useState({ loaded: false, count: 0 });
+  const [scripStatus, setScripStatus] = useState<ScripStatusState>({
+    loaded: false,
+    totalCount: 0,
+    categories: [],
+  });
+  const [loadingCategoryKey, setLoadingCategoryKey] = useState<string | null>(null);
+  const [clearingCategoryKey, setClearingCategoryKey] = useState<string | null>(null);
+  const [isScripModalOpen, setIsScripModalOpen] = useState(false);
   const [isLoadingScrips, setIsLoadingScrips] = useState(false);
 
   // ── NEW: Watchlist ────────────────────────────────────────────────────────
@@ -1000,20 +1192,67 @@ export default function App() {
     }
   };
 
-  const handleLoadScrips = async () => {
-    setIsLoadingScrips(true);
+  const handleLoadScripCategory = async (categoryKey?: string) => {
+    if (categoryKey) {
+      setLoadingCategoryKey(categoryKey);
+    } else {
+      setIsLoadingScrips(true);
+    }
     try {
-      const r = await fetch("/api/scrips/load", { method: "POST" });
+      const r = await fetch("/api/scrips/load", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(categoryKey ? { category: categoryKey } : {}),
+      });
       const d = await r.json();
       if (r.ok) {
-        setScripStatus({ loaded: d.loaded, count: d.count });
-        showNotification(`Scrip master loaded (${d.count})`, "success");
+        if (d.status) setScripStatus(d.status);
+        else fetchScripStatus();
+        const loadedCount = d.count ?? d.totalCount ?? 0;
+        showNotification(
+          categoryKey
+            ? `Loaded ${loadedCount.toLocaleString()} scrips for category`
+            : `Scrip master loaded (${loadedCount.toLocaleString()})`,
+          "success"
+        );
       } else {
-        showNotification(d.error || "Failed to load scrips", "error");
+        showNotification(d.detail || d.error || "Failed to load scrips", "error");
       }
     } catch (_) {
       showNotification("Failed to load scrips", "error");
     } finally {
+      setLoadingCategoryKey(null);
+      setIsLoadingScrips(false);
+    }
+  };
+
+  const handleClearScripCategory = async (categoryKey?: string) => {
+    if (categoryKey) {
+      setClearingCategoryKey(categoryKey);
+    } else {
+      setIsLoadingScrips(true);
+    }
+    try {
+      const r = await fetch("/api/scrips/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(categoryKey ? { category: categoryKey } : {}),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        if (d.status) setScripStatus(d.status);
+        else fetchScripStatus();
+        showNotification(
+          categoryKey ? `Cleared category scrips` : `Cleared all scrips from database`,
+          "info"
+        );
+      } else {
+        showNotification(d.detail || d.error || "Failed to clear scrips", "error");
+      }
+    } catch (_) {
+      showNotification("Failed to clear scrips", "error");
+    } finally {
+      setClearingCategoryKey(null);
       setIsLoadingScrips(false);
     }
   };
@@ -1976,20 +2215,15 @@ export default function App() {
                       <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
                         <button
                           type="button"
-                          onClick={handleLoadScrips}
-                          disabled={
-                            isLoadingScrips ||
-                            !accounts.some((a) => a.status === "active")
-                          }
-                          className="inline-flex items-center justify-center rounded-xl border border-teal-500 bg-teal-500/10 px-4 py-2 text-sm font-semibold text-teal-200 transition hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                          onClick={() => setIsScripModalOpen(true)}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500/40 bg-teal-500/10 px-3.5 py-2 text-xs font-semibold text-teal-200 transition hover:bg-teal-500/20 cursor-pointer"
                         >
-                          {isLoadingScrips ? "Loading scrips..." : "Load Scrips"}
+                          <Database className="w-3.5 h-3.5 text-teal-400" />
+                          <span>Scrip Manager</span>
+                          <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 font-mono text-[10px]">
+                            {(scripStatus.totalCount ?? scripStatus.count ?? 0).toLocaleString()}
+                          </span>
                         </button>
-                        <div className="text-xs text-slate-500">
-                          {scripStatus.loaded
-                            ? `Loaded ${scripStatus.count} scrips`
-                            : "Scrips not loaded yet"}
-                        </div>
                       </div>
                     </div>
                     <p className="text-[10px] text-slate-600 mt-1.5 px-1">
@@ -2618,6 +2852,19 @@ export default function App() {
           </p>
         </div>
       </footer>
+
+      {/* ── SCRIP MASTER MANAGER MODAL ────────────────────────────────────── */}
+      <ScripManagerModal
+        isOpen={isScripModalOpen}
+        onClose={() => setIsScripModalOpen(false)}
+        scripStatus={scripStatus}
+        loadingCategoryKey={loadingCategoryKey}
+        clearingCategoryKey={clearingCategoryKey}
+        isLoadingAll={isLoadingScrips}
+        hasActiveAccount={accounts.some((a) => a.status === "active")}
+        onLoadCategory={handleLoadScripCategory}
+        onClearCategory={handleClearScripCategory}
+      />
 
       {/* ── QUICK ORDER DIALOG ─────────────────────────────────────────────── */}
       {orderDialog && (
