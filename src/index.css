@@ -50,6 +50,67 @@
   .theme-modern textarea {
     color: var(--color-slate-100) !important;
   }
+
+  .theme-cyberpunk {
+    /* Retro CRT Hacker Terminal Theme mapping Slate to Glowing Green-on-Black */
+    --color-slate-950: #000000;      /* Cards and sticky header background (pure black) */
+    --color-slate-900: #000000;      /* Main page background (pure black) */
+    --color-slate-800: #004400;      /* Dividers/borders/gridlines (dark green) */
+    --color-slate-700: #008800;      /* Secondary borders/input boundaries */
+    --color-slate-600: #003300;      /* Placeholder text/disabled elements */
+    --color-slate-500: #00aa00;      /* Muted text */
+    --color-slate-400: #39ff14;      /* Secondary text (neon green) */
+    --color-slate-300: #39ff14;      /* Semi-dark text */
+    --color-slate-200: #39ff14;      /* Standard body/content text */
+    --color-slate-100: #39ff14;      /* Major headings, title and bold text */
+
+    /* Cyber Neon Green Accent */
+    --color-teal-500: #39ff14;      /* Primary interactive buttons/badges */
+    --color-teal-600: #00ff00;      /* Interactive hover state */
+    --color-teal-400: #39ff14;      /* Highlights and highlights accents */
+    --color-teal-950: #002200;      /* Success/Highlight pill backgrounds */
+
+    /* Focus Accents */
+    --color-teal-500\/30: rgba(57, 255, 20, 0.3);
+    --color-teal-500\/20: rgba(57, 255, 20, 0.2);
+
+    /* Enforce Monospace */
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+  }
+
+  .theme-cyberpunk * {
+    border-radius: 0px !important;
+    box-shadow: none !important;
+    text-shadow: 0 0 4px rgba(57, 255, 20, 0.6) !important;
+  }
+
+  .theme-cyberpunk input,
+  .theme-cyberpunk select,
+  .theme-cyberpunk textarea {
+    color: #39ff14 !important;
+    background-color: #000000 !important;
+    border: 1px solid #00aa00 !important;
+  }
+
+  .theme-cyberpunk input:focus,
+  .theme-cyberpunk select:focus,
+  .theme-cyberpunk textarea:focus {
+    border-color: #39ff14 !important;
+    outline: 1px solid #39ff14 !important;
+  }
+}
+
+/* CRT Scanline overlay effect for cyberpunk theme */
+#neo-copier-dashboard.theme-cyberpunk::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(57, 255, 20, 0.05), rgba(57, 255, 20, 0.01), rgba(57, 255, 20, 0.05));
+  z-index: 99999;
+  background-size: 100% 4px, 6px 100%;
+  pointer-events: none;
+  opacity: 0.25;
 }
 
 /* Utility to hide scrollbars on scrollable panels while keeping swipe functionality */

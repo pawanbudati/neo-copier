@@ -526,10 +526,16 @@ function QuickOrderDialog({
               : "bg-rose-500 hover:bg-rose-400 text-slate-950 shadow-lg shadow-rose-500/20"
               }`}
           >
-            <TrendingUp className="w-4 h-4" />
-            {submitting
-              ? "EXECUTING..."
-              : `CONFIRM ${side} — ${scrip.scripRefKey || scrip.tradingSymbol}`}
+            {submitting ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <TrendingUp className="w-4 h-4" />
+            )}
+            <span>
+              {submitting
+                ? "EXECUTING REPLICAS..."
+                : `CONFIRM ${side} — ${scrip.scripRefKey || scrip.tradingSymbol}`}
+            </span>
           </button>
         </div>
       </div>
@@ -726,8 +732,8 @@ export default function App() {
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [theme, setTheme] = useState<"classic" | "modern">(
-    () => (localStorage.getItem("neo-theme") as "classic" | "modern") || "classic"
+  const [theme, setTheme] = useState<"classic" | "modern" | "cyberpunk">(
+    () => (localStorage.getItem("neo-theme") as "classic" | "modern" | "cyberpunk") || "classic"
   );
   const [expandedMasterOrders, setExpandedMasterOrders] = useState<
     Record<string, boolean>
@@ -743,6 +749,10 @@ export default function App() {
   const [totpSecret, setTotpSecret] = useState("");
   const [multiplier, setMultiplier] = useState(1.0);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [savingAccount, setSavingAccount] = useState(false);
+  const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
+  const [loggingInAccountId, setLoggingInAccountId] = useState<string | null>(null);
+  const [togglingPower, setTogglingPower] = useState(false);
 
   // Order pad
   const [instrument, setInstrument] = useState("NIFTY");
@@ -1042,6 +1052,7 @@ export default function App() {
   };
 
   const togglePower = async () => {
+    setTogglingPower(true);
     try {
       const nextPower = !powerOn;
       const r = await fetch("/api/system/power", {
@@ -1059,6 +1070,8 @@ export default function App() {
       }
     } catch (_) {
       showNotification("Failed to toggle system power", "error");
+    } finally {
+      setTogglingPower(false);
     }
   };
 
@@ -1304,6 +1317,7 @@ export default function App() {
       showNotification("Please provide nickname and mobile number", "error");
       return;
     }
+    setSavingAccount(true);
     try {
       const payload = {
         id: editingAccountId,
@@ -1330,6 +1344,8 @@ export default function App() {
       fetchAccounts();
     } catch (err: any) {
       showNotification(err.message, "error");
+    } finally {
+      setSavingAccount(false);
     }
   };
 
@@ -1349,6 +1365,7 @@ export default function App() {
 
   const handleDeleteAccount = async (id: string, name: string) => {
     if (!window.confirm(`Remove account '${name}'?`)) return;
+    setDeletingAccountId(id);
     try {
       const r = await fetch(`/api/accounts/${id}`, { method: "DELETE" });
       if (r.ok) {
@@ -1357,20 +1374,27 @@ export default function App() {
       }
     } catch (_) {
       showNotification("Failed to delete account", "error");
+    } finally {
+      setDeletingAccountId(null);
     }
   };
 
   const handleLoginAccount = async (acc: AccountSummary) => {
+    setLoggingInAccountId(acc.id);
     try {
       let manualOtp = "";
       if (!acc.hasAutoTotpSecret) {
         const enteredOtp = window.prompt(
           `Enter current 6-digit Kotak TOTP for ${acc.nickname}`
         );
-        if (!enteredOtp) return;
+        if (!enteredOtp) {
+          setLoggingInAccountId(null);
+          return;
+        }
         manualOtp = enteredOtp.replace(/\D/g, "");
         if (manualOtp.length !== 6) {
           showNotification("Enter a valid 6-digit TOTP", "error");
+          setLoggingInAccountId(null);
           return;
         }
       }
@@ -1390,6 +1414,8 @@ export default function App() {
       fetchAccounts();
     } catch (_) {
       showNotification("Network error during login", "error");
+    } finally {
+      setLoggingInAccountId(null);
     }
   };
 
@@ -1647,8 +1673,9 @@ export default function App() {
   return (
     <div
       id="neo-copier-dashboard"
-      className={`min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-teal-500 selection:text-white transition-colors duration-300 ${theme === "modern" ? "theme-modern" : ""
-        }`}
+      className={`min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-teal-500 selection:text-white transition-colors duration-300 ${
+        theme === "modern" ? "theme-modern" : theme === "cyberpunk" ? "theme-cyberpunk" : ""
+      }`}
     >
       {/* ── HEADER ────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-slate-950 border-b border-slate-800 shadow-xl backdrop-blur">
@@ -1778,14 +1805,16 @@ export default function App() {
             {/* Theme Toggle */}
             <button
               id="theme-toggle"
-              onClick={() => setTheme((prev) => (prev === "classic" ? "modern" : "classic"))}
+              onClick={() => setTheme((prev) => (prev === "classic" ? "modern" : prev === "modern" ? "cyberpunk" : "classic"))}
               className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
-              title="Toggle theme (Classic Dark vs. Modern Light)"
+              title="Toggle theme (Classic Dark vs. Modern Light vs. Cyberpunk Neon)"
             >
               {theme === "classic" ? (
                 <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
+              ) : theme === "modern" ? (
                 <Moon className="w-4 h-4 text-indigo-400" />
+              ) : (
+                <Zap className="w-4 h-4 text-fuchsia-400" />
               )}
             </button>
           </div>
@@ -2089,11 +2118,20 @@ export default function App() {
                         </button>
                         <button
                           type="submit"
-                          className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center gap-1"
+                          disabled={savingAccount}
+                          className="px-4 py-2 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center gap-1"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {savingAccount ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          )}
                           <span>
-                            {editingAccountId ? "Update Account" : "Register Account"}
+                            {savingAccount
+                              ? "Saving..."
+                              : editingAccountId
+                              ? "Update Account"
+                              : "Register Account"}
                           </span>
                         </button>
                       </div>
@@ -2147,6 +2185,8 @@ export default function App() {
                               onDelete={handleDeleteAccount}
                               colorClass="border-teal-500/30"
                               iconBg="bg-teal-500/10 text-teal-400"
+                              isLoggingIn={loggingInAccountId === masterAcc.id}
+                              isDeleting={deletingAccountId === masterAcc.id}
                             />
                           ) : (
                             <div className="p-3 bg-amber-500/5 border border-amber-500/20 text-amber-300 rounded-xl text-xs flex items-center gap-2">
@@ -2180,6 +2220,8 @@ export default function App() {
                                   onDelete={handleDeleteAccount}
                                   colorClass="border-slate-800"
                                   iconBg="bg-sky-500/10 text-sky-400"
+                                  isLoggingIn={loggingInAccountId === slave.id}
+                                  isDeleting={deletingAccountId === slave.id}
                                 />
                               ))}
                             </div>
@@ -2736,12 +2778,16 @@ export default function App() {
                             {mOrder.status === "PENDING" && (
                               <button
                                 onClick={() => handleCancelOrder(mOrder.id)}
-                                disabled={cancellingOrderId === mOrder.id}
+                                disabled={cancellingOrderId !== null}
                                 className="px-2 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all"
                                 title="Cancel this pending order"
                               >
-                                <Ban className="w-3 h-3" />
-                                {cancellingOrderId === mOrder.id ? "..." : "Cancel"}
+                                {cancellingOrderId === mOrder.id ? (
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Ban className="w-3 h-3" />
+                                )}
+                                <span>{cancellingOrderId === mOrder.id ? "Cancelling..." : "Cancel"}</span>
                               </button>
                             )}
                           </div>
@@ -2815,12 +2861,16 @@ export default function App() {
                                     {sOrder.status === "PENDING" && (
                                       <button
                                         onClick={() => handleCancelOrder(sOrder.id)}
-                                        disabled={cancellingOrderId === sOrder.id}
+                                        disabled={cancellingOrderId !== null}
                                         className="px-1.5 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-0.5 cursor-pointer transition-all"
                                         title="Cancel this pending order"
                                       >
-                                        <Ban className="w-2.5 h-2.5" />
-                                        {cancellingOrderId === sOrder.id ? "..." : "Cancel"}
+                                        {cancellingOrderId === sOrder.id ? (
+                                          <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                                        ) : (
+                                          <Ban className="w-2.5 h-2.5" />
+                                        )}
+                                        <span>{cancellingOrderId === sOrder.id ? "..." : "Cancel"}</span>
                                       </button>
                                     )}
                                   </div>
@@ -2891,6 +2941,8 @@ function AccountCard({
   onDelete,
   colorClass,
   iconBg,
+  isLoggingIn = false,
+  isDeleting = false,
 }: {
   acc: AccountSummary;
   totpCode?: string;
@@ -2899,7 +2951,8 @@ function AccountCard({
   onDelete: (id: string, name: string) => void | Promise<void>;
   colorClass: string;
   iconBg: string;
-  [key: string]: any;
+  isLoggingIn?: boolean;
+  isDeleting?: boolean;
 }) {
   return (
     <div
@@ -2957,22 +3010,33 @@ function AccountCard({
         <button
           id={`login-${acc.role}-${acc.id}`}
           onClick={() => onLogin(acc)}
-          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-teal-500 text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer transition-all"
+          disabled={isLoggingIn || isDeleting}
+          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-teal-500 disabled:opacity-50 text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer transition-all"
         >
-          <Play className="w-3 h-3 text-emerald-400" />
-          <span>Login</span>
+          {isLoggingIn ? (
+            <RefreshCw className="w-3 h-3 text-emerald-400 animate-spin" />
+          ) : (
+            <Play className="w-3 h-3 text-emerald-400" />
+          )}
+          <span>{isLoggingIn ? "Logging in..." : "Login"}</span>
         </button>
         <button
           onClick={() => onEdit(acc)}
-          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg cursor-pointer"
+          disabled={isLoggingIn || isDeleting}
+          className="p-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-400 hover:text-white rounded-lg cursor-pointer"
         >
           <Settings className="w-3.5 h-3.5" />
         </button>
         <button
           onClick={() => onDelete(acc.id, acc.nickname)}
-          className="p-1.5 bg-slate-800 hover:bg-slate-700 text-rose-400 hover:text-rose-300 rounded-lg cursor-pointer"
+          disabled={isLoggingIn || isDeleting}
+          className="p-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-rose-400 hover:text-rose-300 rounded-lg cursor-pointer flex items-center justify-center"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          {isDeleting ? (
+            <RefreshCw className="w-3.5 h-3.5 text-rose-400 animate-spin" />
+          ) : (
+            <Trash2 className="w-3.5 h-3.5" />
+          )}
         </button>
       </div>
     </div>
