@@ -3092,6 +3092,9 @@ export default function App() {
         hasActiveAccount={accounts.some((a) => a.status === "active")}
         onLoadCategory={handleLoadScripCategory}
         onClearCategory={handleClearScripCategory}
+        scripCacheStatus={scripCacheStatus}
+        cachingScrips={cachingScrips}
+        onCacheScrips={handleCacheScrips}
       />
 
       {/* ── QUICK ORDER DIALOG ─────────────────────────────────────────────── */}
