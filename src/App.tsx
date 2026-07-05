@@ -826,6 +826,7 @@ export default function App() {
   const [isLoadingScrips, setIsLoadingScrips] = useState(false);
   const [scripCacheStatus, setScripCacheStatus] = useState<{ isCached: boolean; count: number }>({ isCached: false, count: 0 });
   const [cachingScrips, setCachingScrips] = useState(false);
+  const [subscribeOnSearch, setSubscribeOnSearch] = useState<boolean>(() => (localStorage.getItem("neo-subscribe-on-search") ?? "true") === "true");
 
   // ── NEW: Watchlist ────────────────────────────────────────────────────────
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
@@ -1008,13 +1009,14 @@ export default function App() {
   useEffect(() => {
     if (!authToken) return;
     const watchlistTokens = watchlist.map((w) => w.scriptToken);
-    const searchTokens = leftTab === "search" ? searchResults.map((s) => s.scriptToken) : [];
+    const searchTokens = (leftTab === "search" && subscribeOnSearch) ? searchResults.map((s) => s.scriptToken) : [];
+    const dialogToken = orderDialog ? [orderDialog.scrip.scriptToken] : [];
     const positionTokens = leftTab === "positions"
       ? positions.flatMap((acc) => (acc.positions || []).map((p: any) => p.scriptToken))
       : [];
-    const allTokens = [...new Set([...watchlistTokens, ...searchTokens, ...positionTokens, "Nifty 50", "SENSEX"])];
+    const allTokens = [...new Set([...watchlistTokens, ...searchTokens, ...dialogToken, ...positionTokens, "Nifty 50", "SENSEX"])];
     subscribeToTokens(allTokens);
-  }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn, authToken]);
+  }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn, authToken, subscribeOnSearch, orderDialog]);
 
   // Fetch margins and positions when positions tab is loaded
   useEffect(() => {
@@ -1309,6 +1311,14 @@ export default function App() {
     } finally {
       setExitingAll(false);
     }
+  };
+
+  const toggleSubscribeOnSearch = () => {
+    setSubscribeOnSearch((prev) => {
+      const next = !prev;
+      localStorage.setItem("neo-subscribe-on-search", String(next));
+      return next;
+    });
   };
 
   const handleLoadScripCategory = async (categoryKey?: string) => {
@@ -2446,9 +2456,20 @@ export default function App() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-600 mt-1.5 px-1">
-                      Hover a row to see BUY/SELL buttons and ★ favourites
-                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2 px-1">
+                      <p className="text-[10px] text-slate-600">
+                        Hover a row to see BUY/SELL buttons and ★ favourites
+                      </p>
+                      <label className="inline-flex items-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-400 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={subscribeOnSearch}
+                          onChange={toggleSubscribeOnSearch}
+                          className="rounded border-slate-700 bg-slate-900 text-teal-500 focus:ring-0 w-3 h-3 cursor-pointer"
+                        />
+                        <span>Stream search result prices</span>
+                      </label>
+                    </div>
                   </div>
 
                   {/* Results */}
