@@ -119,7 +119,6 @@ interface ScripCategory {
   count: number;
   isLoaded: boolean;
   url?: string;
-  instrumentTypes?: string[];
 }
 
 interface ScripStatusState {
@@ -548,7 +547,7 @@ interface ScripManagerModalProps {
   clearingCategoryKey: string | null;
   isLoadingAll: boolean;
   hasActiveAccount: boolean;
-  onLoadCategory: (key?: string, instrumentTypes?: string[]) => void;
+  onLoadCategory: (key?: string) => void;
   onClearCategory: (key?: string) => void;
 }
 
@@ -563,67 +562,10 @@ const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
   onLoadCategory,
   onClearCategory,
 }) => {
-  // Local state: selected instrument types per category
-  // Default: all types selected for each category that has them
-  const [selectedTypes, setSelectedTypes] = useState<Record<string, string[]>>(() => {
-    const init: Record<string, string[]> = {};
-    for (const cat of scripStatus.categories || []) {
-      if (cat.instrumentTypes?.length) {
-        // Default to index derivatives only for F&O categories
-        init[cat.key] = cat.instrumentTypes.filter((t) =>
-          ["OPTIDX", "FUTIDX"].includes(t)
-        );
-        // Fallback to all if no index types exist
-        if (init[cat.key].length === 0) init[cat.key] = [...cat.instrumentTypes];
-      }
-    }
-    return init;
-  });
-
-  // Keep selectedTypes in sync when scripStatus.categories changes
-  useEffect(() => {
-    setSelectedTypes((prev) => {
-      const next = { ...prev };
-      for (const cat of scripStatus.categories || []) {
-        if (cat.instrumentTypes?.length && !next[cat.key]) {
-          next[cat.key] = cat.instrumentTypes.filter((t) =>
-            ["OPTIDX", "FUTIDX"].includes(t)
-          );
-          if (next[cat.key].length === 0) next[cat.key] = [...cat.instrumentTypes];
-        }
-      }
-      return next;
-    });
-  }, [scripStatus.categories]);
-
   if (!isOpen) return null;
 
   const categories = scripStatus.categories || [];
   const totalCount = scripStatus.totalCount ?? scripStatus.count ?? 0;
-
-  const toggleType = (catKey: string, type: string) => {
-    setSelectedTypes((prev) => {
-      const current = prev[catKey] || [];
-      const has = current.includes(type);
-      // Prevent deselecting the last type
-      if (has && current.length <= 1) return prev;
-      return {
-        ...prev,
-        [catKey]: has ? current.filter((t) => t !== type) : [...current, type],
-      };
-    });
-  };
-
-  const INSTRUMENT_LABELS: Record<string, string> = {
-    OPTIDX: "Index Options",
-    OPTSTK: "Stock Options",
-    FUTIDX: "Index Futures",
-    FUTSTK: "Stock Futures",
-    FUTCOM: "Commodity Futures",
-    OPTFUT: "Commodity Options",
-    FUTCUR: "Currency Futures",
-    OPTCUR: "Currency Options",
-  };
 
   return (
     <div
@@ -693,8 +635,6 @@ const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
           {categories.map((cat) => {
             const isLoadingThis = loadingCategoryKey === cat.key;
             const isClearingThis = clearingCategoryKey === cat.key;
-            const hasFilters = cat.instrumentTypes && cat.instrumentTypes.length > 0;
-            const catSelected = selectedTypes[cat.key] || cat.instrumentTypes || [];
 
             return (
               <div
@@ -725,41 +665,10 @@ const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
                   </div>
                 </div>
 
-                {/* Instrument Type Filter Chips */}
-                {hasFilters && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {cat.instrumentTypes!.map((type) => {
-                      const isSelected = catSelected.includes(type);
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => toggleType(cat.key, type)}
-                          disabled={isLoadingThis || isClearingThis}
-                          className={`text-[10px] px-2 py-1 rounded-md font-semibold border transition-all cursor-pointer ${
-                            isSelected
-                              ? "bg-teal-500/15 text-teal-300 border-teal-500/40 shadow-sm shadow-teal-500/10"
-                              : "bg-slate-900 text-slate-500 border-slate-700/60 hover:border-slate-600 hover:text-slate-400"
-                          } disabled:cursor-not-allowed disabled:opacity-50`}
-                          title={INSTRUMENT_LABELS[type] || type}
-                        >
-                          {isSelected ? "✓ " : ""}
-                          {type}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
                 <div className="flex items-center gap-2 pt-2 border-t border-slate-800/60">
                   <button
                     type="button"
-                    onClick={() =>
-                      onLoadCategory(
-                        cat.key,
-                        hasFilters ? catSelected : undefined
-                      )
-                    }
+                    onClick={() => onLoadCategory(cat.key)}
                     disabled={isLoadingThis || isClearingThis || !hasActiveAccount}
                     className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-semibold transition disabled:opacity-50"
                   >
@@ -1283,21 +1192,17 @@ export default function App() {
     }
   };
 
-  const handleLoadScripCategory = async (categoryKey?: string, instrumentTypes?: string[]) => {
+  const handleLoadScripCategory = async (categoryKey?: string) => {
     if (categoryKey) {
       setLoadingCategoryKey(categoryKey);
     } else {
       setIsLoadingScrips(true);
     }
     try {
-      const payload: Record<string, unknown> = categoryKey ? { category: categoryKey } : {};
-      if (instrumentTypes && instrumentTypes.length > 0) {
-        payload.instrumentTypes = instrumentTypes;
-      }
       const r = await fetch("/api/scrips/load", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(categoryKey ? { category: categoryKey } : {}),
       });
       const d = await r.json();
       if (r.ok) {
