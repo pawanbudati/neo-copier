@@ -329,15 +329,18 @@ function QuickOrderDialog({
   quote,
   onClose,
   onConfirm,
-  submitting,
   slaveAccs,
 }: {
   scrip: ScripInfo;
   side: "BUY" | "SELL";
   quote?: QuoteData;
   onClose: () => void;
-  onConfirm: (qty: number, price: number, orderType: "MARKET" | "LIMIT" | "SL", triggerPrice: number) => void;
-  submitting: boolean;
+  onConfirm: (
+    qty: number,
+    price: number,
+    orderType: "MARKET" | "LIMIT" | "SL",
+    triggerPrice: number
+  ) => Promise<{ success: boolean; message?: string; error?: string }>;
   slaveAccs: AccountSummary[];
 }) {
   const [qty, setQty] = useState(String(scrip.lotSize));
@@ -349,7 +352,84 @@ function QuickOrderDialog({
     quote ? String(quote.ltp) : "0"
   );
 
+  const [dialogStatus, setDialogStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [feedbackText, setFeedbackText] = useState("");
+
   const isBuy = side === "BUY";
+
+  const handleExecute = async () => {
+    setDialogStatus("submitting");
+    try {
+      const res = await onConfirm(
+        Number(qty),
+        orderType === "LIMIT" || orderType === "SL" ? Number(limitPrice) : 0,
+        orderType,
+        orderType === "SL" ? Number(triggerPrice) : 0
+      );
+      if (res.success) {
+        setDialogStatus("success");
+        setFeedbackText(res.message || "Order replicated successfully!");
+        setTimeout(() => {
+          onClose();
+        }, 2200);
+      } else {
+        setDialogStatus("error");
+        setFeedbackText(res.error || "Execution failed");
+      }
+    } catch (e: any) {
+      setDialogStatus("error");
+      setFeedbackText(e.message || "Unexpected failure occurred");
+    }
+  };
+
+  if (dialogStatus === "success") {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl shadow-2xl w-full max-w-md my-auto p-6 text-center space-y-4 animate-fade-in font-mono">
+          <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full flex items-center justify-center mx-auto animate-bounce">
+            <CheckCircle2 className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-100 uppercase tracking-wide">Trade Executed!</h3>
+          <p className="text-xs text-emerald-300 leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-800">
+            {feedbackText}
+          </p>
+          <div className="text-[10px] text-slate-500 animate-pulse">
+            Closing dialog window in a moment...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (dialogStatus === "error") {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div className="bg-slate-900 border border-rose-500/30 rounded-2xl shadow-2xl w-full max-w-md my-auto p-6 text-center space-y-4 animate-fade-in font-mono">
+          <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-full flex items-center justify-center mx-auto animate-pulse">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-100 uppercase tracking-wide text-rose-400">Order Rejected</h3>
+          <p className="text-xs text-rose-300 leading-relaxed bg-rose-950/50 p-3 rounded-xl border border-rose-900/30">
+            {feedbackText}
+          </p>
+          <div className="flex gap-2.5 pt-2">
+            <button
+              onClick={() => setDialogStatus("idle")}
+              className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 cursor-pointer transition-all"
+            >
+              Modify Order Details
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold rounded-xl border border-rose-500/20 cursor-pointer transition-all"
+            >
+              Close Window
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -512,27 +592,20 @@ function QuickOrderDialog({
         {/* Footer */}
         <div className="px-5 pb-5">
           <button
-            disabled={submitting}
-            onClick={() =>
-              onConfirm(
-                Number(qty),
-                (orderType === "LIMIT" || orderType === "SL") ? Number(limitPrice) : 0,
-                orderType,
-                orderType === "SL" ? Number(triggerPrice) : 0
-              )
-            }
+            disabled={dialogStatus === "submitting"}
+            onClick={handleExecute}
             className={`w-full py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-60 ${isBuy
               ? "bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20"
               : "bg-rose-500 hover:bg-rose-400 text-slate-950 shadow-lg shadow-rose-500/20"
               }`}
           >
-            {submitting ? (
+            {dialogStatus === "submitting" ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
               <TrendingUp className="w-4 h-4" />
             )}
             <span>
-              {submitting
+              {dialogStatus === "submitting"
                 ? "EXECUTING REPLICAS..."
                 : `CONFIRM ${side} — ${scrip.scripRefKey || scrip.tradingSymbol}`}
             </span>
@@ -1614,14 +1687,16 @@ export default function App() {
     setSubmittingOrder(true);
 
     if (!masterAcc) {
-      showNotification("Configure and login to a Master account first", "error");
+      const err = "Configure and login to a Master account first";
+      showNotification(err, "error");
       setSubmittingOrder(false);
-      return false;
+      return { success: false, error: err };
     }
     if (masterAcc.status !== "active") {
-      showNotification("Master account must be Active before placing trades", "error");
+      const err = "Master account must be Active before placing trades";
+      showNotification(err, "error");
       setSubmittingOrder(false);
-      return false;
+      return { success: false, error: err };
     }
 
     try {
@@ -1653,22 +1728,19 @@ export default function App() {
 
       const d = await r.json();
       if (d.success) {
-        showNotification(
-          `Trade executed! Master ID: ${d.masterOrder.id}. Copied to ${d.slaveOrders.length} slave(s).`,
-          "success"
-        );
+        const successMsg = `Trade executed! Master ID: ${d.masterOrder.id}. Copied to ${d.slaveOrders.length} slave(s).`;
+        showNotification(successMsg, "success");
         fetchOrders();
-        return true;
+        return { success: true, message: successMsg };
       } else {
-        showNotification(
-          `Order failed: ${d.masterOrder.errorMessage || "Unknown error"}`,
-          "error"
-        );
-        return false;
+        const errorMsg = d.masterOrder.errorMessage || "Rejected by broker";
+        showNotification(`Order failed: ${errorMsg}`, "error");
+        return { success: false, error: errorMsg };
       }
     } catch (_) {
-      showNotification("Failed to execute order", "error");
-      return false;
+      const networkErr = "Failed to execute order due to connection issues";
+      showNotification(networkErr, "error");
+      return { success: false, error: networkErr };
     } finally {
       setSubmittingOrder(false);
     }
@@ -1681,10 +1753,10 @@ export default function App() {
     ordType: "MARKET" | "LIMIT" | "SL",
     triggerPx = 0
   ) => {
-    if (!orderDialog) return;
+    if (!orderDialog) return { success: false, error: "No active order frame context" };
     const { scrip, side } = orderDialog;
 
-    const ok = await placeOrderCore(
+    const res = await placeOrderCore(
       scrip.instrumentName,
       scrip.tradingSymbol,
       scrip.segment as "CE" | "PE" | "FUT" | "EQ",
@@ -1697,7 +1769,7 @@ export default function App() {
       true, // isQuickOrder
       triggerPx
     );
-    if (ok) setOrderDialog(null);
+    return res;
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -3126,7 +3198,6 @@ export default function App() {
           quote={quotes[orderDialog.scrip.scriptToken]}
           onClose={() => setOrderDialog(null)}
           onConfirm={handleQuickOrderConfirm}
-          submitting={submittingOrder}
           slaveAccs={slaveAccs}
         />
       )}
