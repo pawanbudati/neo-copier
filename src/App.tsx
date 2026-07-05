@@ -753,6 +753,11 @@ export default function App() {
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(null);
   const [loggingInAccountId, setLoggingInAccountId] = useState<string | null>(null);
   const [togglingPower, setTogglingPower] = useState(false);
+  const [authToken, setAuthToken] = useState<string | null>(
+    () => localStorage.getItem("admin-token")
+  );
+  const [loginPassword, setLoginPassword] = useState("");
+  const [authenticating, setAuthenticating] = useState(false);
 
   // Order pad
   const [instrument, setInstrument] = useState("NIFTY");
@@ -817,6 +822,56 @@ export default function App() {
     side: "BUY" | "SELL";
   } | null>(null);
 
+  // Dynamic fetch interceptor hook to append Auth header
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const token = localStorage.getItem("admin-token");
+      if (token) {
+        init = init || {};
+        init.headers = {
+          ...init.headers,
+          "Authorization": `Bearer ${token}`,
+        };
+      }
+      const response = await originalFetch(input, init);
+      if (response.status === 401) {
+        // Auto logout on unauthorized response
+        localStorage.removeItem("admin-token");
+        setAuthToken(null);
+      }
+      return response;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [authToken]);
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginPassword) return;
+    setAuthenticating(true);
+    try {
+      const r = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: loginPassword }),
+      });
+      const d = await r.json();
+      if (r.ok && d.success) {
+        localStorage.setItem("admin-token", d.token);
+        setAuthToken(d.token);
+        showNotification("Authenticated successfully", "success");
+      } else {
+        showNotification(d.error || "Invalid password", "error");
+      }
+    } catch (_) {
+      showNotification("Failed to connect to backend auth", "error");
+    } finally {
+      setAuthenticating(false);
+    }
+  };
+
   // Auto-dismiss guide after 10 seconds
   useEffect(() => {
     if (showHelp) {
@@ -851,6 +906,7 @@ export default function App() {
   // Initial loads
   // ─────────────────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!authToken) return;
     fetchSettings();
     fetchPowerStatus();
     fetchAccounts();
@@ -859,7 +915,7 @@ export default function App() {
     fetchScripStatus();
     const totpInterval = setInterval(fetchTotpPreviews, 15000);
     return () => clearInterval(totpInterval);
-  }, []);
+  }, [authToken]);
 
   useEffect(() => {
     if (accounts.length > 0) fetchTotpPreviews();
@@ -879,7 +935,7 @@ export default function App() {
   }, []);
 
   const subscribeToTokens = useCallback((tokens: string[]) => {
-    if (!powerOn) {
+    if (!powerOn || !authToken) {
       unsubscribeAll();
       return;
     }
@@ -904,7 +960,7 @@ export default function App() {
 
     sseTokensRef.current = uniqueTokens;
     setStreamTokenCount(uniqueTokens.length);
-    const es = new EventSource(`/api/quotes/stream?tokens=${sorted}`);
+    const es = new EventSource(`/api/quotes/stream?tokens=${sorted}&token=${authToken || ''}`);
     sseRef.current = es;
 
     es.onopen = () => setSseConnected(true);
@@ -924,10 +980,11 @@ export default function App() {
       } catch (_) { }
     };
     es.onerror = () => setSseConnected(false);
-  }, [unsubscribeAll, powerOn]);
+  }, [unsubscribeAll, powerOn, authToken]);
 
   // Subscribe to watchlist tokens, search result tokens, active positions, plus Nifty and Sensex indices
   useEffect(() => {
+    if (!authToken) return;
     const watchlistTokens = watchlist.map((w) => w.scriptToken);
     const searchTokens = leftTab === "search" ? searchResults.map((s) => s.scriptToken) : [];
     const positionTokens = leftTab === "positions"
@@ -935,7 +992,7 @@ export default function App() {
       : [];
     const allTokens = [...new Set([...watchlistTokens, ...searchTokens, ...positionTokens, "Nifty 50", "SENSEX"])];
     subscribeToTokens(allTokens);
-  }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn]);
+  }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn, authToken]);
 
   // Fetch margins and positions when positions tab is loaded
   useEffect(() => {
@@ -1670,12 +1727,70 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────────────────────
+  if (!authToken) {
+    return (
+      <div
+        id="neo-copier-auth"
+        className={`min-h-screen bg-slate-900 text-slate-100 font-sans flex items-center justify-center p-4 selection:bg-teal-500 selection:text-white transition-colors duration-300 ${theme === "modern" ? "theme-modern" : theme === "cyberpunk" ? "theme-cyberpunk" : ""
+          }`}
+      >
+        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-8 w-full max-w-md space-y-6 shadow-2xl relative">
+          <div className="text-center space-y-2">
+            <div className="mx-auto w-12 h-12 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-xl flex items-center justify-center">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <h1 className="text-lg font-black tracking-tight text-slate-100 uppercase">
+              Neo-Copier Login
+            </h1>
+            <p className="text-xs text-slate-400">
+              Enter admin dashboard password to proceed
+            </p>
+          </div>
+
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs text-slate-400 font-medium mb-1">
+                Admin Password
+              </label>
+              <input
+                type="password"
+                required
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="e.g. admin"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={authenticating}
+              className="w-full py-2.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 rounded-lg text-sm font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5"
+            >
+              {authenticating ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="w-4 h-4" />
+              )}
+              <span>{authenticating ? "Authenticating..." : "Unlock Dashboard"}</span>
+            </button>
+          </form>
+
+          <div className="text-center pt-2 border-t border-slate-800/60">
+            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+              Your friendly neighbourhood dev <code className="bg-slate-900 px-1 py-0.5 rounded text-teal-400">Pavan</code>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       id="neo-copier-dashboard"
-      className={`min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-teal-500 selection:text-white transition-colors duration-300 ${
-        theme === "modern" ? "theme-modern" : theme === "cyberpunk" ? "theme-cyberpunk" : ""
-      }`}
+      className={`min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-teal-500 selection:text-white transition-colors duration-300 ${theme === "modern" ? "theme-modern" : theme === "cyberpunk" ? "theme-cyberpunk" : ""
+        }`}
     >
       {/* ── HEADER ────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-slate-950 border-b border-slate-800 shadow-xl backdrop-blur">
@@ -1816,6 +1931,18 @@ export default function App() {
               ) : (
                 <Zap className="w-4 h-4 text-fuchsia-400" />
               )}
+            </button>
+
+            {/* Logout Button */}
+            <button
+              onClick={() => {
+                localStorage.removeItem("admin-token");
+                setAuthToken(null);
+              }}
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              title="Logout from Admin Dashboard"
+            >
+              <UserMinus className="w-4 h-4 text-rose-400" />
             </button>
           </div>
         </div>
@@ -2130,8 +2257,8 @@ export default function App() {
                             {savingAccount
                               ? "Saving..."
                               : editingAccountId
-                              ? "Update Account"
-                              : "Register Account"}
+                                ? "Update Account"
+                                : "Register Account"}
                           </span>
                         </button>
                       </div>
