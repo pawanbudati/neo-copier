@@ -555,6 +555,9 @@ interface ScripManagerModalProps {
   hasActiveAccount: boolean;
   onLoadCategory: (key?: string) => void;
   onClearCategory: (key?: string) => void;
+  scripCacheStatus: { isCached: boolean; count: number };
+  cachingScrips: boolean;
+  onCacheScrips: () => void;
 }
 
 const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
@@ -567,6 +570,9 @@ const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
   hasActiveAccount,
   onLoadCategory,
   onClearCategory,
+  scripCacheStatus,
+  cachingScrips,
+  onCacheScrips,
 }) => {
   if (!isOpen) return null;
 
@@ -633,6 +639,16 @@ const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
               <Trash2 className="w-3.5 h-3.5" />
               Clear All Scrips
             </button>
+            <button
+              type="button"
+              onClick={onCacheScrips}
+              disabled={isLoadingAll || cachingScrips || totalCount === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-medium transition disabled:opacity-50"
+              title="Load all database scrips into RAM memory cache for sub-millisecond lightning fast searches."
+            >
+              <Database className={`w-3.5 h-3.5 ${cachingScrips ? "animate-spin" : ""}`} />
+              {cachingScrips ? "Caching RAM..." : scripCacheStatus.isCached ? `In RAM: ${scripCacheStatus.count.toLocaleString()}` : "Cache to RAM"}
+            </button>
           </div>
         </div>
 
@@ -698,7 +714,10 @@ const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
 
         {/* Footer */}
         <div className="px-6 py-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-          <span>Updates stored directly in PostgreSQL database</span>
+          <span>
+            DB Total: <strong className="text-slate-300 font-mono">{totalCount.toLocaleString()}</strong> |{" "}
+            RAM Cache: <strong className={scripCacheStatus.isCached ? "text-indigo-400 font-mono font-bold" : "text-slate-500 font-mono"}>{scripCacheStatus.isCached ? `${scripCacheStatus.count.toLocaleString()} Active` : "Inactive"}</strong>
+          </span>
           <button
             onClick={onClose}
             className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium transition"
@@ -805,6 +824,8 @@ export default function App() {
   const [clearingCategoryKey, setClearingCategoryKey] = useState<string | null>(null);
   const [isScripModalOpen, setIsScripModalOpen] = useState(false);
   const [isLoadingScrips, setIsLoadingScrips] = useState(false);
+  const [scripCacheStatus, setScripCacheStatus] = useState<{ isCached: boolean; count: number }>({ isCached: false, count: 0 });
+  const [cachingScrips, setCachingScrips] = useState(false);
 
   // ── NEW: Watchlist ────────────────────────────────────────────────────────
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
@@ -913,6 +934,7 @@ export default function App() {
     fetchOrders();
     fetchWatchlist();
     fetchScripStatus();
+    fetchScripCacheStatus();
     const totpInterval = setInterval(fetchTotpPreviews, 15000);
     return () => clearInterval(totpInterval);
   }, [authToken]);
@@ -1179,6 +1201,33 @@ export default function App() {
     } catch (_) { }
   };
 
+  const fetchScripCacheStatus = async () => {
+    try {
+      const r = await fetch("/api/scrips/cache/status");
+      if (r.ok) {
+        setScripCacheStatus(await r.json());
+      }
+    } catch (_) { }
+  };
+
+  const handleCacheScrips = async () => {
+    setCachingScrips(true);
+    try {
+      const r = await fetch("/api/scrips/cache", { method: "POST" });
+      const d = await r.json();
+      if (r.ok && d.success) {
+        setScripCacheStatus(d.status);
+        showNotification(`Successfully cached ${d.count.toLocaleString()} scrips to RAM for fast searches`, "success");
+      } else {
+        showNotification(d.error || "Failed to cache scrips", "error");
+      }
+    } catch (_) {
+      showNotification("Network error during caching", "error");
+    } finally {
+      setCachingScrips(false);
+    }
+  };
+
   const fetchMargins = async () => {
     setLoadingMargins(true);
     try {
@@ -1278,6 +1327,7 @@ export default function App() {
       if (r.ok) {
         if (d.status) setScripStatus(d.status);
         else fetchScripStatus();
+        fetchScripCacheStatus();
         const loadedCount = d.count ?? d.totalCount ?? 0;
         showNotification(
           categoryKey
@@ -1312,6 +1362,7 @@ export default function App() {
       if (r.ok) {
         if (d.status) setScripStatus(d.status);
         else fetchScripStatus();
+        fetchScripCacheStatus();
         showNotification(
           categoryKey ? `Cleared category scrips` : `Cleared all scrips from database`,
           "info"
@@ -1739,7 +1790,7 @@ export default function App() {
             <div className="mx-auto w-12 h-12 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-xl flex items-center justify-center">
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <h1 className="text-lg font-black tracking-tight text-slate-100 uppercase">
+            <h1 className="text-lg font-black tracking-tight text-slate-100 uppercase terminal-cursor">
               Neo-Copier Login
             </h1>
             <p className="text-xs text-slate-400">

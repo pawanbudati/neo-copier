@@ -101,7 +101,8 @@
 }
 
 /* CRT Scanline overlay effect for cyberpunk theme */
-#neo-copier-dashboard.theme-cyberpunk::after {
+#neo-copier-dashboard.theme-cyberpunk::after,
+#neo-copier-auth.theme-cyberpunk::after {
   content: " ";
   display: block;
   position: fixed;
@@ -111,6 +112,97 @@
   background-size: 100% 4px, 6px 100%;
   pointer-events: none;
   opacity: 0.25;
+}
+
+@keyframes scanline-anim {
+  0% { transform: translateY(-100vh); }
+  100% { transform: translateY(100vh); }
+}
+
+#neo-copier-dashboard.theme-cyberpunk::before,
+#neo-copier-auth.theme-cyberpunk::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0; left: 0; right: 0; height: 10px;
+  background: rgba(57, 255, 20, 0.12);
+  z-index: 99998;
+  pointer-events: none;
+  animation: scanline-anim 6s linear infinite;
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.4);
+}
+
+@keyframes terminal-blink {
+  50% { opacity: 0; }
+}
+
+.theme-cyberpunk .terminal-cursor::after {
+  content: " █";
+  animation: terminal-blink 1s step-start infinite;
+  color: #39ff14;
+  text-shadow: 0 0 4px #39ff14;
+}
+
+.theme-cyberpunk ::selection {
+  background-color: #39ff14 !important;
+  color: #000000 !important;
+}
+
+/* Custom terminal scrollbars */
+.theme-cyberpunk ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.theme-cyberpunk ::-webkit-scrollbar-track {
+  background: #000000 !important;
+}
+.theme-cyberpunk ::-webkit-scrollbar-thumb {
+  background: #004400 !important;
+  border: 1px solid #00aa00 !important;
+}
+.theme-cyberpunk ::-webkit-scrollbar-thumb:hover {
+  background: #39ff14 !important;
+}
+
+/* Hover glows for buttons & select controls */
+.theme-cyberpunk button:hover:not(:disabled),
+.theme-cyberpunk select:hover:not(:disabled),
+.theme-cyberpunk a:hover {
+  border-color: #39ff14 !important;
+  background-color: rgba(57, 255, 20, 0.15) !important;
+  color: #ffffff !important;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.8) !important;
+}
+
+/* High-contrast status indicator glows */
+.theme-cyberpunk .text-emerald-400,
+.theme-cyberpunk .text-emerald-500 {
+  color: #39ff14 !important;
+  text-shadow: 0 0 6px rgba(57, 255, 20, 0.8) !important;
+}
+.theme-cyberpunk .bg-emerald-500\/10 {
+  background-color: rgba(57, 255, 20, 0.12) !important;
+  border: 1px solid rgba(57, 255, 20, 0.4) !important;
+}
+
+.theme-cyberpunk .text-rose-400,
+.theme-cyberpunk .text-rose-500 {
+  color: #ff3131 !important;
+  text-shadow: 0 0 6px rgba(255, 49, 49, 0.8) !important;
+}
+.theme-cyberpunk .bg-rose-500\/10 {
+  background-color: rgba(255, 49, 49, 0.12) !important;
+  border: 1px solid rgba(255, 49, 49, 0.4) !important;
+}
+
+.theme-cyberpunk .text-amber-400,
+.theme-cyberpunk .text-amber-500 {
+  color: #ffb000 !important;
+  text-shadow: 0 0 6px rgba(255, 176, 0, 0.8) !important;
+}
+.theme-cyberpunk .bg-amber-500\/10 {
+  background-color: rgba(255, 176, 0, 0.12) !important;
+  border: 1px solid rgba(255, 176, 0, 0.4) !important;
 }
 
 /* Utility to hide scrollbars on scrollable panels while keeping swipe functionality */
