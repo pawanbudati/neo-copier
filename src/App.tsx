@@ -342,6 +342,168 @@ function ScripRow({
 //   });
 // }
 
+// ─── OCO Bracket Dialog ────────────────────────────────────────────────────────
+function OcoBracketDialog({
+  position,
+  onClose,
+  onSubmit,
+}: {
+  position: any;
+  onClose: () => void;
+  onSubmit: (data: {
+    slTriggerPrice: number;
+    slLimitPrice: number;
+    tpPrice: number;
+    quantity: number;
+  }) => Promise<void>;
+}) {
+  const [slTriggerPrice, setSlTriggerPrice] = useState("");
+  const [slLimitPrice, setSlLimitPrice] = useState("");
+  const [tpPrice, setTpPrice] = useState("");
+  const [quantity, setQuantity] = useState(Math.abs(position.netQty).toString());
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const slTrig = parseFloat(slTriggerPrice);
+    const slLim = parseFloat(slLimitPrice);
+    const tp = parseFloat(tpPrice);
+    const qty = parseInt(quantity);
+
+    if (isNaN(slTrig) || slTrig <= 0) {
+      alert("Please enter a valid SL Trigger Price");
+      return;
+    }
+    if (isNaN(slLim) || slLim <= 0) {
+      alert("Please enter a valid SL Limit Price");
+      return;
+    }
+    if (isNaN(tp) || tp <= 0) {
+      alert("Please enter a valid Target Price");
+      return;
+    }
+    if (isNaN(qty) || qty <= 0) {
+      alert("Please enter a valid Quantity");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await onSubmit({ slTriggerPrice: slTrig, slLimitPrice: slLim, tpPrice: tp, quantity: qty });
+      onClose();
+    } catch (_) {
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const side = position.netQty > 0 ? "SELL" : "BUY";
+
+  return (
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-[#2b2d30] border border-[#393b40] rounded-xl shadow-2xl w-full max-w-md overflow-hidden text-slate-200">
+        {/* Header */}
+        <div className="px-4 py-3 bg-[#1e1f22] border-b border-[#393b40] flex justify-between items-center">
+          <div className="space-y-0.5">
+            <h3 className="text-sm font-bold text-slate-100 font-mono">{position.symbol}</h3>
+            <p className="text-[10px] text-slate-400">
+              Set Stop Loss & Target ({position.role ? position.role.toUpperCase() : "MASTER"})
+            </p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-base font-semibold cursor-pointer">
+            &times;
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div className="grid grid-cols-2 gap-3 text-xs bg-slate-900/30 p-2.5 rounded-lg border border-[#393b40]/30 font-mono">
+            <div>Position Qty: <span className="font-semibold text-slate-100">{position.netQty}</span></div>
+            <div>Current LTP: <span className="font-semibold text-teal-400">₹{(position.ltp || 0).toFixed(2)}</span></div>
+            <div>Bracket Side: <span className={`font-semibold ${side === "BUY" ? "text-emerald-400" : "text-rose-400"}`}>{side}</span></div>
+          </div>
+
+          <div className="space-y-3">
+            {/* Quantity */}
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">Quantity</label>
+              <input
+                type="number"
+                step="1"
+                required
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="w-full bg-[#1e1f22] border border-[#393b40] rounded px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-[#3574f0]"
+              />
+            </div>
+
+            {/* Target Price */}
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">Target Limit Price (TP)</label>
+              <input
+                type="number"
+                step="0.05"
+                required
+                placeholder="e.g. 140.00"
+                value={tpPrice}
+                onChange={(e) => setTpPrice(e.target.value)}
+                className="w-full bg-[#1e1f22] border border-[#393b40] rounded px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-[#3574f0]"
+              />
+            </div>
+
+            {/* SL Trigger & Limit */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">SL Trigger Price</label>
+                <input
+                  type="number"
+                  step="0.05"
+                  required
+                  placeholder="e.g. 110.00"
+                  value={slTriggerPrice}
+                  onChange={(e) => setSlTriggerPrice(e.target.value)}
+                  className="w-full bg-[#1e1f22] border border-[#393b40] rounded px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-[#3574f0]"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">SL Limit Price</label>
+                <input
+                  type="number"
+                  step="0.05"
+                  required
+                  placeholder="e.g. 109.00"
+                  value={slLimitPrice}
+                  onChange={(e) => setSlLimitPrice(e.target.value)}
+                  className="w-full bg-[#1e1f22] border border-[#393b40] rounded px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-[#3574f0]"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex justify-end gap-2 border-t border-[#393b40] pt-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3.5 py-1.5 bg-[#2b2d30] border border-[#393b40] hover:bg-slate-800 text-slate-300 text-xs font-semibold rounded cursor-pointer transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-3.5 py-1.5 bg-[#3574f0] hover:bg-[#3574f0]/95 text-white disabled:opacity-50 text-xs font-bold rounded cursor-pointer transition-all"
+            >
+              {submitting ? "SUBMITTING..." : "SUBMIT BRACKET"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
 // ─── Quick Order Dialog ───────────────────────────────────────────────────────
 function QuickOrderDialog({
   scrip,
@@ -903,6 +1065,8 @@ export default function App() {
   const [loadingPositions, setLoadingPositions] = useState(false);
   const [exitingAll, setExitingAll] = useState(false);
   const [exitingPositionId, setExitingPositionId] = useState<string | null>(null);
+  const [activeOcos, setActiveOcos] = useState<any[]>([]);
+  const [selectedOcoPosition, setSelectedOcoPosition] = useState<any | null>(null);
 
   // ── NEW: Search ───────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -1020,6 +1184,7 @@ export default function App() {
     fetchScripCacheStatus();
     fetchMargins();
     fetchPositions();
+    fetchActiveOcos();
     const totpInterval = setInterval(fetchTotpPreviews, 15000);
     return () => clearInterval(totpInterval);
   }, [authToken]);
@@ -1290,6 +1455,7 @@ export default function App() {
     if (leftTab === "positions") {
       fetchMargins();
       fetchPositions();
+      fetchActiveOcos();
     }
   }, [leftTab]);
 
@@ -1534,6 +1700,72 @@ export default function App() {
       showNotification("Error loading positions", "error");
     } finally {
       setLoadingPositions(false);
+    }
+  };
+
+  const fetchActiveOcos = async () => {
+    try {
+      const res = await fetch("/api/positions/oco/active");
+      if (res.ok) {
+        setActiveOcos(await res.json());
+      }
+    } catch (err) {
+      console.error("Error fetching active OCO brackets:", err);
+    }
+  };
+
+  const handleCancelOco = async (ocoId: string) => {
+    if (!window.confirm("Are you sure you want to cancel this Stop Loss / Target bracket?")) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/positions/oco/${ocoId}`, { method: "DELETE" });
+      if (res.ok) {
+        showNotification("OCO Bracket cancelled successfully", "success");
+        fetchActiveOcos();
+      } else {
+        const data = await res.json();
+        showNotification(data.error || "Failed to cancel bracket", "error");
+      }
+    } catch (_) {
+      showNotification("Error cancelling OCO bracket", "error");
+    }
+  };
+
+  const handleSubmitOco = async (data: {
+    slTriggerPrice: number;
+    slLimitPrice: number;
+    tpPrice: number;
+    quantity: number;
+  }) => {
+    if (!selectedOcoPosition) return;
+    try {
+      const body = {
+        accountId: selectedOcoPosition.accountId,
+        symbol: selectedOcoPosition.symbol,
+        segment: selectedOcoPosition.segment,
+        quantity: data.quantity,
+        slTriggerPrice: data.slTriggerPrice,
+        slLimitPrice: data.slLimitPrice,
+        tpPrice: data.tpPrice,
+        transactionType: selectedOcoPosition.netQty > 0 ? "SELL" : "BUY"
+      };
+
+      const res = await fetch("/api/positions/oco", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      if (res.ok) {
+        showNotification("SL & Target Bracket orders placed successfully", "success");
+        fetchActiveOcos();
+      } else {
+        const errData = await res.json();
+        showNotification(errData.detail || errData.error || "Failed to place bracket orders", "error");
+      }
+    } catch (_) {
+      showNotification("Error placing bracket orders", "error");
     }
   };
 
@@ -2978,6 +3210,51 @@ export default function App() {
                     )}
                   </div>
 
+                  {/* Bracket Orders (OCO) Section */}
+                  {activeOcos.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">Active Bracket Orders (OCO)</h3>
+                        <button
+                          onClick={fetchActiveOcos}
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-[10px] font-semibold cursor-pointer transition-all"
+                        >
+                          Refresh Brackets
+                        </button>
+                      </div>
+                      <div className="border border-slate-800/80 rounded-xl bg-slate-950/40 divide-y divide-slate-800/40 overflow-hidden max-h-[300px] overflow-y-auto">
+                        {activeOcos.map((oco: any) => (
+                          <div key={oco.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 text-xs bg-slate-900/10">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-slate-100 font-mono text-xs sm:text-sm">{oco.symbol}</span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${oco.masterOcoId ? "text-slate-400 bg-slate-800/50 border-slate-700" : "text-[#3574f0] bg-[#3574f0]/10 border-[#3574f0]/20"}`}>
+                                  {oco.masterOcoId ? "SLAVE REPLICATED" : "MASTER BRACKET"}
+                                </span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border text-rose-400 bg-rose-400/10 border-rose-500/20">{oco.transactionType}</span>
+                              </div>
+                              <div className="flex items-center gap-4 text-[10px] text-slate-400 flex-wrap font-mono">
+                                <div>Account: <span className="font-semibold text-slate-300">{oco.accountName}</span></div>
+                                <div>Qty: <span className="font-semibold text-slate-300">{oco.quantity}</span></div>
+                                <div>SL Trigger: <span className="font-semibold text-rose-400">₹{oco.slTriggerPrice.toFixed(2)}</span></div>
+                                <div>SL Limit: <span className="font-semibold text-rose-400">₹{oco.slLimitPrice.toFixed(2)}</span></div>
+                                <div>Target: <span className="font-semibold text-emerald-400">₹{oco.tpPrice.toFixed(2)}</span></div>
+                              </div>
+                            </div>
+                            <div>
+                              <button
+                                onClick={() => handleCancelOco(oco.id)}
+                                className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold rounded-lg cursor-pointer transition-all"
+                              >
+                                CANCEL BRACKET
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Positions Section */}
                   <div className="space-y-3 flex-1 flex flex-col">
                     <div className="flex items-center justify-between">
@@ -3066,13 +3343,30 @@ export default function App() {
 
                                           {/* Exit Square Off Button */}
                                           {p.netQty !== 0 && (
-                                            <button
-                                              onClick={() => handleExitPosition(acc.accountId, p.symbol, p.netQty, p.segment, p.exchange)}
-                                              disabled={exitingPositionId === `${acc.accountId}_${p.symbol}`}
-                                              className="px-3.5 py-1.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg cursor-pointer transition-all"
-                                            >
-                                              {exitingPositionId === `${acc.accountId}_${p.symbol}` ? "EXITING..." : "SQUARE OFF"}
-                                            </button>
+                                            <>
+                                              <button
+                                                onClick={() => setSelectedOcoPosition({
+                                                  accountId: acc.accountId,
+                                                  accountName: acc.accountName,
+                                                  role: acc.role,
+                                                  symbol: p.symbol,
+                                                  netQty: p.netQty,
+                                                  segment: p.segment,
+                                                  exchange: p.exchange,
+                                                  ltp: ltp
+                                                })}
+                                                className="px-3 py-1.5 bg-[#3574f0] text-slate-100 hover:bg-[#3574f0]/90 text-xs font-bold rounded-lg cursor-pointer transition-all"
+                                              >
+                                                SET SL/TARGET
+                                              </button>
+                                              <button
+                                                onClick={() => handleExitPosition(acc.accountId, p.symbol, p.netQty, p.segment, p.exchange)}
+                                                disabled={exitingPositionId === `${acc.accountId}_${p.symbol}`}
+                                                className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg cursor-pointer transition-all"
+                                              >
+                                                {exitingPositionId === `${acc.accountId}_${p.symbol}` ? "EXITING..." : "SQUARE OFF"}
+                                              </button>
+                                            </>
                                           )}
                                           {p.netQty === 0 && (
                                             <span className="text-[10px] font-bold text-slate-600 bg-slate-800/50 px-2 py-1 rounded-lg">
@@ -3466,6 +3760,14 @@ export default function App() {
           onClose={() => setOrderDialog(null)}
           onConfirm={handleQuickOrderConfirm}
           slaveAccs={slaveAccs}
+        />
+      )}
+
+      {selectedOcoPosition && (
+        <OcoBracketDialog
+          position={selectedOcoPosition}
+          onClose={() => setSelectedOcoPosition(null)}
+          onSubmit={handleSubmitOco}
         />
       )}
     </div>
