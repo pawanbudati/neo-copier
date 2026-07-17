@@ -2180,7 +2180,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col xl:flex-row items-center xl:justify-between gap-3 xl:gap-4">
           {/* Live Index Tickers */}
           {accounts.some((a) => a.role === "master" && a.status === "active") && (
-            <div className="flex items-center justify-between xl:justify-start gap-4 bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-xl backdrop-blur-sm shadow-inner overflow-x-auto scrollbar-none max-w-full w-full xl:w-auto">
+            <div className={`items-center justify-between xl:justify-start gap-4 bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-xl backdrop-blur-sm shadow-inner overflow-x-auto scrollbar-none max-w-full w-full xl:w-auto ${leftTab === "search" ? "hidden xl:flex" : "flex"}`}>
               {/* NIFTY 50 */}
               <div className="gap-2 pr-4 border-r border-slate-800">
                 <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">NIFTY 50</div>
