@@ -1327,12 +1327,14 @@ export default function App() {
       return;
     }
     setIsSearching(true);
+    let active = true;
+
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(
           `/api/search?q=${encodeURIComponent(searchQuery.trim())}`
         );
-        if (res.ok) {
+        if (res.ok && active) {
           const data = await res.json();
           setSearchResults(data.results || []);
           // Merge search quotes into existing state instead of replacing
@@ -1340,10 +1342,16 @@ export default function App() {
         }
       } catch (_) {
       } finally {
-        setIsSearching(false);
+        if (active) {
+          setIsSearching(false);
+        }
       }
     }, 300);
-    return () => clearTimeout(timer);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [searchQuery]);
 
   // ─────────────────────────────────────────────────────────────────────────
