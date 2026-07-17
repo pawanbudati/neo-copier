@@ -41,6 +41,25 @@ import {
   Power,
 } from "lucide-react";
 
+// Global fetch interceptor to append Auth headers and handle 401 redirects
+const nativeFetch = window.fetch;
+window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  const token = localStorage.getItem("admin-token");
+  if (token) {
+    init = init || {};
+    init.headers = {
+      ...init.headers,
+      "Authorization": `Bearer ${token}`,
+    };
+  }
+  const response = await nativeFetch(input, init);
+  if (response.status === 401) {
+    localStorage.removeItem("admin-token");
+    window.dispatchEvent(new Event("admin-unauthorized"));
+  }
+  return response;
+};
+
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
 interface AccountSummary {
@@ -923,30 +942,14 @@ export default function App() {
     side: "BUY" | "SELL";
   } | null>(null);
 
-  // Dynamic fetch interceptor hook to append Auth header
+  // Listen to global unauthorized events to prompt login screen
   useEffect(() => {
-    const originalFetch = window.fetch;
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      const token = localStorage.getItem("admin-token");
-      if (token) {
-        init = init || {};
-        init.headers = {
-          ...init.headers,
-          "Authorization": `Bearer ${token}`,
-        };
-      }
-      const response = await originalFetch(input, init);
-      if (response.status === 401) {
-        // Auto logout on unauthorized response
-        localStorage.removeItem("admin-token");
-        setAuthToken(null);
-      }
-      return response;
+    const handleUnauthorized = () => {
+      setAuthToken(null);
     };
-    return () => {
-      window.fetch = originalFetch;
-    };
-  }, [authToken]);
+    window.addEventListener("admin-unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("admin-unauthorized", handleUnauthorized);
+  }, []);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
