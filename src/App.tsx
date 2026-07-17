@@ -1018,6 +1018,8 @@ export default function App() {
     fetchWatchlist();
     fetchScripStatus();
     fetchScripCacheStatus();
+    fetchMargins();
+    fetchPositions();
     const totpInterval = setInterval(fetchTotpPreviews, 15000);
     return () => clearInterval(totpInterval);
   }, [authToken]);
@@ -1278,9 +1280,7 @@ export default function App() {
     const watchlistTokens = watchlist.map((w) => w.scriptToken);
     const searchTokens = (leftTab === "search" && subscribeOnSearch) ? searchResults.map((s) => s.scriptToken) : [];
     const dialogToken = orderDialog ? [orderDialog.scrip.scriptToken] : [];
-    const positionTokens = leftTab === "positions"
-      ? positions.flatMap((acc) => (acc.positions || []).map((p: any) => p.scriptToken))
-      : [];
+    const positionTokens = positions.flatMap((acc) => (acc.positions || []).map((p: any) => p.scriptToken));
     const allTokens = [...new Set([...watchlistTokens, ...searchTokens, ...dialogToken, ...positionTokens, "Nifty 50", "SENSEX"])];
     subscribeToTokens(allTokens);
   }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn, authToken, subscribeOnSearch, orderDialog]);
