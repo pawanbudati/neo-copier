@@ -2020,6 +2020,38 @@ export default function App() {
     }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm("Are you sure you want to delete this order record? This will remove the master order and all copy logs.")) return;
+    try {
+      const r = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
+      const d = await r.json();
+      if (r.ok && d.success) {
+        showNotification("Order record deleted", "info");
+        fetchOrders();
+      } else {
+        showNotification(`Delete failed: ${d.error || "Unknown error"}`, "error");
+      }
+    } catch (_) {
+      showNotification("Failed to delete order record", "error");
+    }
+  };
+
+  const handleClearOrders = async () => {
+    if (!confirm("🚨 WARNING: This will permanently delete all order logs and replication copy histories. Proceed?")) return;
+    try {
+      const r = await fetch("/api/orders", { method: "DELETE" });
+      const d = await r.json();
+      if (r.ok && d.success) {
+        showNotification("All order records cleared", "success");
+        fetchOrders();
+      } else {
+        showNotification(`Clear failed: ${d.error || "Unknown error"}`, "error");
+      }
+    } catch (_) {
+      showNotification("Failed to clear order records", "error");
+    }
+  };
+
   // Sync all pending order statuses from broker
   const handleSyncOrderStatus = async () => {
     setSyncingOrders(true);
@@ -3175,16 +3207,24 @@ export default function App() {
                 {syncingOrders ? "Syncing..." : "Sync Status"}
               </button>
               <button
+                onClick={handleClearOrders}
+                className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                title="Clear all order logs from database"
+              >
+                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Clear Logs</span>
+              </button>
+              <button
                 onClick={fetchOrders}
                 disabled={loadingOrders}
-                className="p-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 border border-slate-800 text-slate-300 rounded-lg"
+                className="p-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 border border-slate-800 text-slate-300 rounded-lg cursor-pointer"
               >
                 <RefreshCw className={`w-4 h-4 ${loadingOrders ? "animate-spin" : ""}`} />
               </button>
             </div>
           </div>
 
-          <div className="p-4 overflow-x-auto">
+          <div className="p-4 max-h-[500px] overflow-y-auto">
             {loadingOrders ? (
               <div className="text-center py-8 text-slate-400 text-xs">
                 Loading order logs...
@@ -3296,6 +3336,13 @@ export default function App() {
                             ) : (
                               <ChevronDown className="w-3.5 h-3.5" />
                             )}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteOrder(mOrder.id)}
+                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-rose-400 hover:text-rose-300 rounded-lg cursor-pointer flex items-center justify-center border border-slate-700 transition"
+                            title="Delete this order record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
