@@ -1,6 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    /* IntelliJ IDEA New Dark Theme Palette as default */
+    --color-slate-950: #2b2d30;      /* Card, sidebar, sticky header background (IntelliJ panel background) */
+    --color-slate-900: #1e1f22;      /* Main page workspace background (IntelliJ main background) */
+    --color-slate-800: #393b40;      /* Standard borders and gridlines */
+    --color-slate-700: #4e5157;      /* Secondary borders and focused inputs */
+    --color-slate-600: #5e626a;      /* Inactive elements / disabled borders */
+    --color-slate-500: #868a91;      /* Muted text / description labels */
+    --color-slate-400: #a8adbc;      /* Secondary labels / inactive tabs */
+    --color-slate-300: #c9ced9;      /* Body text / standard reading text */
+    --color-slate-200: #dfe1e5;      /* High contrast body text */
+    --color-slate-100: #f2f3f5;      /* Headings and major bold labels */
+
+    /* IntelliJ Accent Blue */
+    --color-teal-500: #3574f0;       /* IntelliJ brand button blue */
+    --color-teal-600: #2b61cc;       /* Accent hover blue */
+    --color-teal-400: #3574f0;       /* Highlight labels / link text */
+    --color-teal-950: #1e2f4f;       /* Success/highlight pill backgrounds */
+
+    --color-teal-500\/30: rgba(53, 116, 240, 0.3);
+    --color-teal-500\/20: rgba(53, 116, 240, 0.2);
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  }
+
+  /* Make sure mono classes use JetBrains Mono for a highly professional IDE coding aesthetic */
+  .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  }
+
+  /* IntelliJ Theme high-contrast text on primary buttons */
+  button.bg-teal-500, 
+  a.bg-teal-500 {
+    color: #ffffff !important;
+  }
+
+  button.bg-teal-500:hover,
+  a.bg-teal-500:hover {
+    color: #ffffff !important;
+    background-color: #2b61cc !important;
+  }
+
+  /* Custom scrollbars matching IntelliJ theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #1e1f22;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #393b40;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #4e5157;
+  }
+
+  /* Let modern and cyberpunk themes override the button text color if they are active */
+  .theme-cyberpunk button.bg-teal-500,
+  .theme-cyberpunk a.bg-teal-500 {
+    color: #000000 !important;
+  }
+
+  .theme-modern button.bg-teal-500,
+  .theme-modern a.bg-teal-500 {
+    color: #ffffff !important; /* Keep white on indigo */
+  }
+
   /* Prevent browser tap highlight color overlays on mobile devices */
   * {
     -webkit-tap-highlight-color: transparent;

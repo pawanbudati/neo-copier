@@ -2273,7 +2273,7 @@ export default function App() {
               id="theme-toggle"
               onClick={() => setTheme((prev) => (prev === "classic" ? "modern" : prev === "modern" ? "cyberpunk" : "classic"))}
               className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
-              title="Toggle theme (Classic Dark vs. Modern Light vs. Cyberpunk Neon)"
+              title="Toggle theme (IntelliJ Dark vs. Modern Light vs. Cyberpunk Neon)"
             >
               {theme === "classic" ? (
                 <Sun className="w-4 h-4 text-amber-400" />
