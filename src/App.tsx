@@ -1807,17 +1807,17 @@ export default function App() {
       } else {
         showNotification(`Auth failed for ${acc.nickname}: ${d.error}`, "error");
       }
-      
+
       // Update only the logged-in account in the local state instead of reloading all
       setAccounts((prev) =>
         prev.map((a) =>
           a.id === acc.id
             ? {
-                ...a,
-                status: d.status,
-                errorMessage: d.error,
-                lastLogin: d.lastLogin,
-              }
+              ...a,
+              status: d.status,
+              errorMessage: d.error,
+              lastLogin: d.lastLogin,
+            }
             : a
         )
       );
@@ -2240,14 +2240,6 @@ export default function App() {
             <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-mono font-medium text-slate-300">
               <Clock className="w-4 h-4 text-teal-400 animate-pulse" />
               <span>IST: {currentTime || "09:15:00 AM"}</span>
-            </div>
-
-            {/* Live indicator */}
-            <div
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 bg-red-500/10 text-red-400 border border-red-500/30"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>LIVE TRADING</span>
             </div>
 
             {/* Auto-replicator */}
