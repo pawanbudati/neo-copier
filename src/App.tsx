@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { KotakLiveFeed } from "./kotakWebSocket";
 import {
   Users,
   Plus,
@@ -904,12 +905,17 @@ export default function App() {
   // ── NEW: Watchlist ────────────────────────────────────────────────────────
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
 
-  // ── NEW: Live quotes (SSE) ────────────────────────────────────────────────
+  // ── NEW: Live quotes (WS + SSE fallback) ──────────────────────────────────
   const [quotes, setQuotes] = useState<Record<string, QuoteData>>({});
   const [sseConnected, setSseConnected] = useState(false);
   const sseRef = useRef<EventSource | null>(null);
   const sseTokensRef = useRef<string[]>([]);
   const [streamTokenCount, setStreamTokenCount] = useState(0);
+
+  const [useWebSocket, setUseWebSocket] = useState(true);
+  const [wsConnected, setWsConnected] = useState(false);
+  const feedRef = useRef<KotakLiveFeed | null>(null);
+  const webSocketTokensRef = useRef<string[]>([]);
 
   // ── NEW: Quick order dialog ───────────────────────────────────────────────
   const [orderDialog, setOrderDialog] = useState<{
@@ -1018,7 +1024,7 @@ export default function App() {
   }, [accounts]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // SSE subscription management
+  // WS & SSE subscription management
   // ─────────────────────────────────────────────────────────────────────────
   const unsubscribeAll = useCallback(() => {
     if (sseRef.current) {
@@ -1026,57 +1032,242 @@ export default function App() {
       sseRef.current = null;
     }
     sseTokensRef.current = [];
-    setStreamTokenCount(0);
     setSseConnected(false);
+
+    if (feedRef.current) {
+      feedRef.current.disconnect();
+      feedRef.current = null;
+    }
+    webSocketTokensRef.current = [];
+    setWsConnected(false);
+
+    setStreamTokenCount(0);
   }, []);
 
-  const subscribeToTokens = useCallback((tokens: string[]) => {
+  const mapToNeoExchange = (exchange: string): string => {
+    const e = (exchange || "").toUpperCase();
+    if (e === "NSE") return "nse_cm";
+    if (e === "BSE") return "bse_cm";
+    if (e === "NFO") return "nse_fo";
+    if (e === "BFO") return "bse_fo";
+    if (e === "CDS" || e === "CDE") return "cde_fo";
+    if (e === "MCX") return "mcx_fo";
+    return e.toLowerCase();
+  };
+
+  const lookupInstrument = useCallback((token: string) => {
+    if (token === "Nifty 50") return { exchange_segment: "nse_cm", instrument_token: "Nifty 50", isIndex: true };
+    if (token === "SENSEX") return { exchange_segment: "bse_cm", instrument_token: "SENSEX", isIndex: true };
+    if (token === "CRUDEOIL") return { exchange_segment: "mcx_fo", instrument_token: "CRUDEOIL", isIndex: true };
+
+    const searchItem = searchResults.find(s => s.scriptToken === token);
+    if (searchItem) {
+      return {
+        exchange_segment: mapToNeoExchange(searchItem.exchange),
+        instrument_token: token,
+        isIndex: false
+      };
+    }
+
+    const watchItem = watchlist.find(w => w.scriptToken === token);
+    if (watchItem) {
+      return {
+        exchange_segment: mapToNeoExchange(watchItem.exchange),
+        instrument_token: token,
+        isIndex: false
+      };
+    }
+
+    for (const acc of positions) {
+      const posItem = (acc.positions || []).find((p: any) => p.scriptToken === token);
+      if (posItem) {
+        return {
+          exchange_segment: mapToNeoExchange(posItem.exchange),
+          instrument_token: token,
+          isIndex: false
+        };
+      }
+    }
+
+    return { exchange_segment: "nse_cm", instrument_token: token, isIndex: false };
+  }, [searchResults, watchlist, positions]);
+
+  const fetchFeedCredentials = async () => {
+    try {
+      const res = await fetch("/api/accounts/feed-credentials");
+      if (!res.ok) throw new Error("Failed to fetch feed credentials");
+      return await res.json();
+    } catch (err) {
+      console.error("Error fetching feed credentials:", err);
+      return null;
+    }
+  };
+
+  const initWebSocket = useCallback((creds: any, onConnect: () => void) => {
+    if (feedRef.current) return feedRef.current;
+
+    const feed = new KotakLiveFeed({
+      accessToken: creds.accessToken,
+      sid: creds.sid,
+      serverId: creds.serverId,
+      dataCenter: creds.dataCenter
+    });
+
+    feed.onStatus((connected) => {
+      setWsConnected(connected);
+      if (connected) {
+        onConnect();
+      }
+    });
+
+    feed.onTick((tick) => {
+      setQuotes((prev) => {
+        const next = { ...prev };
+        next[tick.token] = {
+          ltp: tick.ltp,
+          change: tick.change,
+          changePct: tick.changePct,
+          prevLtp: prev[tick.token]?.ltp
+        };
+        return next;
+      });
+    });
+
+    feed.connect();
+    feedRef.current = feed;
+    return feed;
+  }, []);
+
+  const subscribeToTokens = useCallback(async (tokens: string[]) => {
     if (!powerOn || !authToken) {
       unsubscribeAll();
       return;
     }
-    // Deduplicate and sort for stable comparison
+
     const uniqueTokens = [...new Set(tokens.filter(Boolean))];
     if (!uniqueTokens.length) {
       unsubscribeAll();
       return;
     }
 
-    const sorted = uniqueTokens.sort().join(",");
-    const prevSorted = [...new Set(sseTokensRef.current)].sort().join(",");
-    const currentReadyState = sseRef.current?.readyState;
-    if (sorted === prevSorted && (currentReadyState === EventSource.OPEN || currentReadyState === EventSource.CONNECTING)) return;
+    if (useWebSocket) {
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
+        setSseConnected(false);
+        sseTokensRef.current = [];
+      }
 
-    // Close existing
-    if (sseRef.current) {
-      sseRef.current.close();
-      sseRef.current = null;
-      setSseConnected(false);
-    }
+      let feed = feedRef.current;
+      if (!feed) {
+        const creds = await fetchFeedCredentials();
+        if (!creds) {
+          console.warn("[Feed] Could not fetch feed credentials, falling back to SSE");
+          setUseWebSocket(false);
+          setTimeout(() => subscribeToTokens(tokens), 0);
+          return;
+        }
 
-    sseTokensRef.current = uniqueTokens;
-    setStreamTokenCount(uniqueTokens.length);
-    const es = new EventSource(`/api/quotes/stream?tokens=${sorted}&token=${authToken || ''}`);
-    sseRef.current = es;
-
-    es.onopen = () => setSseConnected(true);
-    es.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data) as Record<
-          string,
-          { ltp: number; change: number; changePct: number }
-        >;
-        setQuotes((prev) => {
-          const next = { ...prev };
-          for (const [token, q] of Object.entries(data)) {
-            next[token] = { ...q, prevLtp: prev[token]?.ltp };
+        feed = initWebSocket(creds, () => {
+          const insts: any[] = [];
+          const idxs: any[] = [];
+          for (const t of uniqueTokens) {
+            const inst = lookupInstrument(t);
+            if (inst.isIndex) {
+              idxs.push({ exchange_segment: inst.exchange_segment, instrument_token: inst.instrument_token });
+            } else {
+              insts.push({ exchange_segment: inst.exchange_segment, instrument_token: inst.instrument_token });
+            }
           }
-          return next;
+          if (idxs.length) feed?.subscribe(idxs, true);
+          if (insts.length) feed?.subscribe(insts, false);
+          webSocketTokensRef.current = uniqueTokens;
+          setStreamTokenCount(uniqueTokens.length);
         });
-      } catch (_) { }
-    };
-    es.onerror = () => setSseConnected(false);
-  }, [unsubscribeAll, powerOn, authToken]);
+        return;
+      }
+
+      if (feed.isConnected) {
+        const currentTokens = webSocketTokensRef.current;
+        const newTokens = uniqueTokens;
+
+        const toAdd = newTokens.filter(t => !currentTokens.includes(t));
+        const toRemove = currentTokens.filter(t => !newTokens.includes(t));
+
+        const addScrips: any[] = [];
+        const addIndexes: any[] = [];
+        const removeScrips: any[] = [];
+        const removeIndexes: any[] = [];
+
+        for (const t of toAdd) {
+          const inst = lookupInstrument(t);
+          if (inst.isIndex) {
+            addIndexes.push({ exchange_segment: inst.exchange_segment, instrument_token: inst.instrument_token });
+          } else {
+            addScrips.push({ exchange_segment: inst.exchange_segment, instrument_token: inst.instrument_token });
+          }
+        }
+
+        for (const t of toRemove) {
+          const inst = lookupInstrument(t);
+          if (inst.isIndex) {
+            removeIndexes.push({ exchange_segment: inst.exchange_segment, instrument_token: inst.instrument_token });
+          } else {
+            removeScrips.push({ exchange_segment: inst.exchange_segment, instrument_token: inst.instrument_token });
+          }
+        }
+
+        if (addIndexes.length) feed.subscribe(addIndexes, true);
+        if (addScrips.length) feed.subscribe(addScrips, false);
+        if (removeIndexes.length) feed.unsubscribe(removeIndexes, true);
+        if (removeScrips.length) feed.unsubscribe(removeScrips, false);
+
+        webSocketTokensRef.current = newTokens;
+        setStreamTokenCount(newTokens.length);
+      }
+    } else {
+      if (feedRef.current) {
+        feedRef.current.disconnect();
+        feedRef.current = null;
+        setWsConnected(false);
+        webSocketTokensRef.current = [];
+      }
+
+      const sorted = uniqueTokens.sort().join(",");
+      const prevSorted = [...new Set(sseTokensRef.current)].sort().join(",");
+      const currentReadyState = sseRef.current?.readyState;
+      if (sorted === prevSorted && (currentReadyState === EventSource.OPEN || currentReadyState === EventSource.CONNECTING)) return;
+
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
+        setSseConnected(false);
+      }
+
+      sseTokensRef.current = uniqueTokens;
+      setStreamTokenCount(uniqueTokens.length);
+      const es = new EventSource(`/api/quotes/stream?tokens=${sorted}&token=${authToken || ''}`);
+      sseRef.current = es;
+
+      es.onopen = () => setSseConnected(true);
+      es.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data) as Record<
+            string,
+            { ltp: number; change: number; changePct: number }
+          >;
+          setQuotes((prev) => {
+            const next = { ...prev };
+            for (const [token, q] of Object.entries(data)) {
+              next[token] = { ...q, prevLtp: prev[token]?.ltp };
+            }
+            return next;
+          });
+        } catch (_) { }
+      };
+      es.onerror = () => setSseConnected(false);
+    }
+  }, [unsubscribeAll, powerOn, authToken, useWebSocket, initWebSocket, lookupInstrument]);
 
   // Subscribe to watchlist tokens, search result tokens, active positions, plus Nifty and Sensex indices
   useEffect(() => {
@@ -1590,7 +1781,6 @@ export default function App() {
         }
       }
 
-      showNotification(`Authenticating ${acc.nickname}...`, "info");
       const r = await fetch(`/api/accounts/${acc.id}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1599,10 +1789,35 @@ export default function App() {
       const d = await r.json();
       if (d.success) {
         showNotification(`Session active for ${acc.nickname}`, "success");
+        // Refetch feed credentials and update the WebSocket stream if running
+        fetchFeedCredentials().then((creds) => {
+          if (creds && feedRef.current) {
+            console.log("[Feed] Updating WebSocket credentials after login");
+            feedRef.current.updateCredentials({
+              accessToken: creds.accessToken,
+              sid: creds.sid,
+              serverId: creds.serverId,
+              dataCenter: creds.dataCenter
+            });
+          }
+        });
       } else {
         showNotification(`Auth failed for ${acc.nickname}: ${d.error}`, "error");
       }
-      fetchAccounts();
+      
+      // Update only the logged-in account in the local state instead of reloading all
+      setAccounts((prev) =>
+        prev.map((a) =>
+          a.id === acc.id
+            ? {
+                ...a,
+                status: d.status,
+                errorMessage: d.error,
+                lastLogin: d.lastLogin,
+              }
+            : a
+        )
+      );
     } catch (_) {
       showNotification("Network error during login", "error");
     } finally {
@@ -2579,13 +2794,15 @@ export default function App() {
                   {/* Footer hint */}
                   <div className="px-4 py-2 border-t border-slate-800/50 flex items-center gap-2">
                     <div
-                      className={`w-2 h-2 rounded-full ${sseConnected ? "bg-teal-500 animate-pulse" : "bg-slate-600"
+                      className={`w-2 h-2 rounded-full ${(wsConnected || sseConnected) ? "bg-teal-500 animate-pulse" : "bg-slate-600"
                         }`}
                     />
                     <span className="text-[10px] text-slate-600">
-                      {sseConnected
-                        ? `Streaming prices for ${searchResults.length} instrument(s)`
-                        : "Price feed inactive"}
+                      {wsConnected
+                        ? `Streaming prices (WS) for ${searchResults.length} instrument(s)`
+                        : sseConnected
+                          ? `Streaming prices (SSE) for ${searchResults.length} instrument(s)`
+                          : "Price feed inactive"}
                     </span>
                   </div>
                 </div>
@@ -2605,14 +2822,14 @@ export default function App() {
                       </span>
                     </div>
                     <div
-                      className={`flex items-center gap-1.5 text-[10px] ${sseConnected ? "text-teal-400" : "text-slate-600"
+                      className={`flex items-center gap-1.5 text-[10px] ${(wsConnected || sseConnected) ? "text-teal-400" : "text-slate-600"
                         }`}
                     >
                       <div
-                        className={`w-1.5 h-1.5 rounded-full ${sseConnected ? "bg-teal-500 animate-pulse" : "bg-slate-600"
+                        className={`w-1.5 h-1.5 rounded-full ${(wsConnected || sseConnected) ? "bg-teal-500 animate-pulse" : "bg-slate-600"
                           }`}
                       />
-                      {sseConnected ? "Live prices" : "No feed"}
+                      {wsConnected ? "Live prices (WS)" : sseConnected ? "Live prices (SSE)" : "No feed"}
                     </div>
                   </div>
 
