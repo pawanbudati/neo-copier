@@ -1016,11 +1016,11 @@ export default function App() {
   });
 
   const faviconOptions = [
-    { key: "default", name: "NC Monogram", url: "/favicon.svg" },
-    { key: "A", name: "Sync Circle", url: "/favicon_option_A.svg" },
-    { key: "B", name: "Twin Pillars", url: "/favicon_option_B.svg" },
-    { key: "C", name: "Infinity Copy", url: "/favicon_option_C.svg" },
-    { key: "D", name: "Hexagon Copier", url: "/favicon_option_D.svg" }
+    { key: "default", name: "NC Monogram", url: `${import.meta.env.BASE_URL}favicon.svg` },
+    { key: "A", name: "Sync Circle", url: `${import.meta.env.BASE_URL}favicon_option_A.svg` },
+    { key: "B", name: "Twin Pillars", url: `${import.meta.env.BASE_URL}favicon_option_B.svg` },
+    { key: "C", name: "Infinity Copy", url: `${import.meta.env.BASE_URL}favicon_option_C.svg` },
+    { key: "D", name: "Hexagon Copier", url: `${import.meta.env.BASE_URL}favicon_option_D.svg` }
   ];
 
   const [expandedMasterOrders, setExpandedMasterOrders] = useState<
@@ -1502,7 +1502,7 @@ export default function App() {
     const option = faviconOptions.find(opt => opt.key === currentFavicon) || faviconOptions[0];
     let url = option.url;
     if (currentFavicon === "default" && theme === "modern") {
-      url = "/favicon_light.svg";
+      url = `${import.meta.env.BASE_URL}favicon_light.svg`;
     }
     const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
     if (link) {
