@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="100%" height="100%">
+  <defs>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#06b6d4" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <g filter="url(#glow)">
+    <!-- Top-Right Arrow (Master) -->
+    <path d="M 128 32 A 96 96 0 0 1 224 128 L 208 128 A 80 80 0 0 0 128 48 Z" fill="url(#cyanGrad)"/>
+    <polygon points="128,16 128,48 144,32" fill="url(#cyanGrad)"/>
+    <!-- Bottom-Left Arrow (Slave) -->
+    <path d="M 128 224 A 96 96 0 0 1 32 128 L 48 128 A 80 80 0 0 0 128 208 Z" fill="url(#blueGrad)"/>
+    <polygon points="128,240 128,208 112,224" fill="url(#blueGrad)"/>
+    
+    <!-- Central interlocking rings (Copier) -->
+    <circle cx="108" cy="128" r="32" fill="none" stroke="url(#cyanGrad)" stroke-width="8"/>
+    <circle cx="148" cy="128" r="32" fill="none" stroke="url(#blueGrad)" stroke-width="8" opacity="0.8"/>
+  </g>
+</svg>

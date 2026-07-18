@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 40 176 176" width="100%" height="100%">
+  <defs>
+    <!-- High-Contrast Light Theme Gradients -->
+    <linearGradient id="neonTeal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0891b2"/> <!-- Darker cyan -->
+      <stop offset="100%" stop-color="#0369a1"/> <!-- Darker blue -->
+    </linearGradient>
+
+    <linearGradient id="neonPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a21caf"/> <!-- Darker fuchsia -->
+      <stop offset="100%" stop-color="#6b21a8"/> <!-- Darker purple -->
+    </linearGradient>
+    
+    <!-- Deep Outer Glow Shadow to clearly outline the N and C shapes against light backgrounds -->
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#5b21b6" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#neonGlow)">
+    <!-- Letter C (Copier) - Back Layer -->
+    <path d="M 190 76 C 114 76 104 100 104 128 C 104 156 114 180 190 180" fill="none" stroke="url(#neonPurple)" stroke-width="16" stroke-linecap="round" opacity="0.95"/>
+    
+    <!-- Link Indicator -->
+    <circle cx="118" cy="128" r="7" fill="#0891b2" filter="drop-shadow(0 0 4px #6b21a8)"/>
+
+    <!-- Letter N (Neo) - Front Layer -->
+    <path d="M 72 180 L 72 76 L 138 180 L 138 76" fill="none" stroke="url(#neonTeal)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

@@ -39,6 +39,7 @@ import {
   Sun,
   Moon,
   Power,
+  Palette,
 } from "lucide-react";
 
 // Global fetch interceptor to append Auth headers and handle 401 redirects
@@ -1009,6 +1010,19 @@ export default function App() {
   const [theme, setTheme] = useState<"classic" | "modern" | "cyberpunk">(
     () => (localStorage.getItem("neo-theme") as "classic" | "modern" | "cyberpunk") || "classic"
   );
+  
+  const [currentFavicon, setCurrentFavicon] = useState<string>(() => {
+    return localStorage.getItem("neo-favicon") || "default";
+  });
+
+  const faviconOptions = [
+    { key: "default", name: "NC Monogram", url: "/favicon.svg" },
+    { key: "A", name: "Sync Circle", url: "/favicon_option_A.svg" },
+    { key: "B", name: "Twin Pillars", url: "/favicon_option_B.svg" },
+    { key: "C", name: "Infinity Copy", url: "/favicon_option_C.svg" },
+    { key: "D", name: "Hexagon Copier", url: "/favicon_option_D.svg" }
+  ];
+
   const [expandedMasterOrders, setExpandedMasterOrders] = useState<
     Record<string, boolean>
   >({});
@@ -1484,6 +1498,25 @@ export default function App() {
     localStorage.setItem("neo-theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    const option = faviconOptions.find(opt => opt.key === currentFavicon) || faviconOptions[0];
+    let url = option.url;
+    if (currentFavicon === "default" && theme === "modern") {
+      url = "/favicon_light.svg";
+    }
+    const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+    if (link) {
+      link.href = url;
+    } else {
+      const newLink = document.createElement("link");
+      newLink.rel = "icon";
+      newLink.type = "image/svg+xml";
+      newLink.href = url;
+      document.head.appendChild(newLink);
+    }
+    localStorage.setItem("neo-favicon", currentFavicon);
+  }, [currentFavicon, theme]);
+
   // ─────────────────────────────────────────────────────────────────────────
   // Search — debounced
   // ─────────────────────────────────────────────────────────────────────────
@@ -1530,6 +1563,16 @@ export default function App() {
   ) => {
     setActionStatus({ message, type });
     setTimeout(() => setActionStatus(null), 5000);
+  };
+
+  const handleToggleFavicon = () => {
+    setCurrentFavicon((prev) => {
+      const idx = faviconOptions.findIndex((opt) => opt.key === prev);
+      const nextIdx = (idx + 1) % faviconOptions.length;
+      const nextOpt = faviconOptions[nextIdx];
+      showNotification(`Favicon updated to: ${nextOpt.name}`, "success");
+      return nextOpt.key;
+    });
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -2547,6 +2590,15 @@ export default function App() {
               ) : (
                 <Zap className="w-4 h-4 text-fuchsia-400" />
               )}
+            </button>
+
+            {/* Favicon Toggle */}
+            <button
+              onClick={handleToggleFavicon}
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              title={`Switch application tab icon (Current: ${faviconOptions.find(opt => opt.key === currentFavicon)?.name || "NC Monogram"})`}
+            >
+              <Palette className="w-4 h-4 text-teal-400" />
             </button>
 
             {/* Logout Button */}

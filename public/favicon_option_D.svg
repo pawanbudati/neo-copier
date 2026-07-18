@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="120 100 280 280" width="100%" height="100%">
+  <defs>
+    <!-- Neon gradients -->
+    <linearGradient id="neonTeal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe"/>
+      <stop offset="100%" stop-color="#4facfe"/>
+    </linearGradient>
+
+    <linearGradient id="neonPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f355da"/>
+      <stop offset="100%" stop-color="#7000ff"/>
+    </linearGradient>
+    
+    <!-- Soft glow filters -->
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#00f2fe" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <!-- Overlapping Trading Hexagons (Copy Mechanism) -->
+    <!-- Slave Hexagon (Mirror) -->
+    <polygon points="210,210 290,164 370,210 370,302 290,348 210,302" fill="none" stroke="url(#neonPurple)" stroke-width="14" opacity="0.75" stroke-linejoin="round"/>
+    
+    <!-- Link Bridge between Master and Slave -->
+    <path d="M 230 256 C 256 220, 256 292, 282 256" stroke="#ffffff" stroke-width="5" stroke-dasharray="6 6" fill="none" opacity="0.4"/>
+    
+    <!-- Master Hexagon (Source) -->
+    <polygon points="142,164 222,118 302,164 302,256 222,302 142,256" fill="none" stroke="url(#neonTeal)" stroke-width="18" stroke-linejoin="round"/>
+
+    <!-- Upward Trend Line connecting Master to Slave -->
+    <path d="M 170 230 L 210 190 L 250 215 L 290 145 C 310 170, 320 220, 340 220" fill="none" stroke="#ffffff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Glow points on the trend vertices -->
+    <circle cx="170" cy="230" r="9" fill="#ffffff"/>
+    <circle cx="210" cy="190" r="9" fill="#00f2fe"/>
+    <circle cx="250" cy="215" r="9" fill="#00f2fe"/>
+    <circle cx="290" cy="145" r="13" fill="#ffffff" filter="drop-shadow(0 0 5px #00f2fe)"/>
+  </g>
+</svg>
