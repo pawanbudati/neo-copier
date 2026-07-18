@@ -1527,13 +1527,13 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   // Notifications
   // ─────────────────────────────────────────────────────────────────────────
-  const showNotification = useCallback((
+  const showNotification = (
     message: string,
     type: "success" | "error" | "info" = "info"
   ) => {
     setActionStatus({ message, type });
     setTimeout(() => setActionStatus(null), 5000);
-  }, []);
+  };
 
   // ─────────────────────────────────────────────────────────────────────────
   // API calls — settings, accounts, orders, TOTP
@@ -1675,7 +1675,7 @@ export default function App() {
     }
   };
 
-  const fetchMargins = useCallback(async () => {
+  const fetchMargins = async () => {
     setLoadingMargins(true);
     try {
       const r = await fetch("/api/accounts/margins");
@@ -1689,9 +1689,9 @@ export default function App() {
     } finally {
       setLoadingMargins(false);
     }
-  }, [showNotification]);
+  };
 
-  const fetchPositions = useCallback(async () => {
+  const fetchPositions = async () => {
     setLoadingPositions(true);
     try {
       const r = await fetch("/api/accounts/positions");
@@ -1705,9 +1705,9 @@ export default function App() {
     } finally {
       setLoadingPositions(false);
     }
-  }, [showNotification]);
+  };
 
-  const fetchActiveOcos = useCallback(async () => {
+  const fetchActiveOcos = async () => {
     try {
       const res = await fetch("/api/positions/oco/active");
       if (res.ok) {
@@ -1716,7 +1716,7 @@ export default function App() {
     } catch (err) {
       console.error("Error fetching active OCO brackets:", err);
     }
-  }, []);
+  };
 
   const handleCancelOco = async (ocoId: string) => {
     if (!window.confirm("Are you sure you want to cancel this Stop Loss / Target bracket?")) {
