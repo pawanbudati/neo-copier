@@ -1067,6 +1067,8 @@ export default function App() {
   const [exitingPositionId, setExitingPositionId] = useState<string | null>(null);
   const [activeOcos, setActiveOcos] = useState<any[]>([]);
   const [selectedOcoPosition, setSelectedOcoPosition] = useState<any | null>(null);
+  const [orderEventsLog, setOrderEventsLog] = useState<any[]>([]);
+  const [orderFeedWsConnected, setOrderFeedConnected] = useState(false);
 
   // ── NEW: Search ───────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -1094,6 +1096,7 @@ export default function App() {
   const sseRef = useRef<EventSource | null>(null);
   const sseTokensRef = useRef<string[]>([]);
   const [streamTokenCount, setStreamTokenCount] = useState(0);
+  const orderFeedWsRef = useRef<WebSocket | null>(null);
 
   const [useWebSocket, setUseWebSocket] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
@@ -1524,13 +1527,13 @@ export default function App() {
   // ─────────────────────────────────────────────────────────────────────────
   // Notifications
   // ─────────────────────────────────────────────────────────────────────────
-  const showNotification = (
+  const showNotification = useCallback((
     message: string,
     type: "success" | "error" | "info" = "info"
   ) => {
     setActionStatus({ message, type });
     setTimeout(() => setActionStatus(null), 5000);
-  };
+  }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
   // API calls — settings, accounts, orders, TOTP
@@ -1672,7 +1675,7 @@ export default function App() {
     }
   };
 
-  const fetchMargins = async () => {
+  const fetchMargins = useCallback(async () => {
     setLoadingMargins(true);
     try {
       const r = await fetch("/api/accounts/margins");
@@ -1686,9 +1689,9 @@ export default function App() {
     } finally {
       setLoadingMargins(false);
     }
-  };
+  }, [showNotification]);
 
-  const fetchPositions = async () => {
+  const fetchPositions = useCallback(async () => {
     setLoadingPositions(true);
     try {
       const r = await fetch("/api/accounts/positions");
@@ -1702,9 +1705,9 @@ export default function App() {
     } finally {
       setLoadingPositions(false);
     }
-  };
+  }, [showNotification]);
 
-  const fetchActiveOcos = async () => {
+  const fetchActiveOcos = useCallback(async () => {
     try {
       const res = await fetch("/api/positions/oco/active");
       if (res.ok) {
@@ -1713,7 +1716,7 @@ export default function App() {
     } catch (err) {
       console.error("Error fetching active OCO brackets:", err);
     }
-  };
+  }, []);
 
   const handleCancelOco = async (ocoId: string) => {
     if (!window.confirm("Are you sure you want to cancel this Stop Loss / Target bracket?")) {
@@ -1769,6 +1772,120 @@ export default function App() {
       showNotification("Error placing bracket orders", "error");
     }
   };
+
+  // ── Order Feed WebSocket Client Listener ──────────────────────────────────────
+  useEffect(() => {
+    if (!powerOn || !authToken) {
+      if (orderFeedWsRef.current) {
+        orderFeedWsRef.current.close();
+        orderFeedWsRef.current = null;
+      }
+      setOrderFeedConnected(false);
+      return;
+    }
+
+    let active = true;
+    let reconnectTimeout: ReturnType<typeof setTimeout>;
+
+    const connect = () => {
+      if (!active) return;
+
+      const loc = window.location;
+      const protocol = loc.protocol === "https:" ? "wss:" : "ws:";
+      const host = loc.host;
+      const wsUrl = `${protocol}//${host}/ws/order-feed`;
+      console.log("[OrderFeed] Connecting to WebSocket:", wsUrl);
+
+      const ws = new WebSocket(wsUrl);
+      orderFeedWsRef.current = ws;
+
+      ws.onopen = () => {
+        if (!active) {
+          ws.close();
+          return;
+        }
+        setOrderFeedConnected(true);
+        console.log("[OrderFeed] WebSocket connected successfully.");
+      };
+
+      ws.onmessage = (event) => {
+        if (!active) return;
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.eventType === "order_update") {
+            const updateData = payload.data;
+            const records = Array.isArray(updateData) ? updateData : [updateData];
+
+            records.forEach((record: any) => {
+              if (!record || typeof record !== "object") return;
+              const symbol = record.trdSym || record.sym || "Instrument";
+              const orderId = record.nOrdNo || "N/A";
+              const status = record.ordSt || "N/A";
+              const price = record.avgPrc || record.prc || "0.00";
+              const qty = record.qty || "0";
+              const side = record.trnsTp === "B" ? "BUY" : record.trnsTp === "S" ? "SELL" : record.trnsTp || "";
+
+              const sideLabel = side ? `[${side}] ` : "";
+              const statusUpper = status.toUpperCase();
+              const notificationType = statusUpper === "REJECTED" ? "error" : statusUpper === "COMPLETE" || statusUpper === "TRADED" ? "success" : "info";
+
+              showNotification(
+                `Order ${statusUpper}: ${sideLabel}${symbol} (Qty: ${qty} @ ₹${price}) for ${payload.accountName}`,
+                notificationType
+              );
+
+              setOrderEventsLog((prev) => {
+                const newLog = [
+                  {
+                    id: `${payload.accountId}_${orderId}_${Date.now()}`,
+                    accountName: payload.accountName,
+                    role: payload.role,
+                    symbol,
+                    orderId,
+                    status,
+                    price,
+                    qty,
+                    side,
+                    timestamp: payload.timestamp || new Date().toLocaleTimeString(),
+                  },
+                  ...prev,
+                ];
+                return newLog.slice(0, 25);
+              });
+            });
+
+            fetchPositions();
+            fetchActiveOcos();
+          }
+        } catch (err) {
+          console.error("[OrderFeed] Error parsing message:", err);
+        }
+      };
+
+      ws.onclose = () => {
+        if (!active) return;
+        setOrderFeedConnected(false);
+        console.warn("[OrderFeed] WebSocket connection closed. Reconnecting in 5s...");
+        reconnectTimeout = setTimeout(connect, 5000);
+      };
+
+      ws.onerror = (err) => {
+        console.error("[OrderFeed] WebSocket error observed:", err);
+      };
+    };
+
+    connect();
+
+    return () => {
+      active = false;
+      clearTimeout(reconnectTimeout);
+      if (orderFeedWsRef.current) {
+        orderFeedWsRef.current.close();
+        orderFeedWsRef.current = null;
+      }
+      setOrderFeedConnected(false);
+    };
+  }, [powerOn, authToken, fetchPositions, fetchActiveOcos]);
 
   const handleExitPosition = async (accountId: string, symbol: string, netQty: number, segment: string, exchange: string) => {
     if (!window.confirm(`Are you sure you want to square off position for ${symbol} (Qty: ${netQty})?`)) {
@@ -3380,6 +3497,74 @@ export default function App() {
                                   })}
                                 </div>
                               )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Order Activity Log Section */}
+                  <div className="space-y-3 mt-6 border-t border-slate-800/80 pt-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider">Live Order Activity Log</h3>
+                        <span className={`w-1.5 h-1.5 rounded-full ${orderFeedWsConnected ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
+                        <span className="text-[9px] text-slate-500 font-mono">
+                          {orderFeedWsConnected ? "STREAMING (WS)" : "OFFLINE"}
+                        </span>
+                      </div>
+                      {orderEventsLog.length > 0 && (
+                        <button
+                          onClick={() => setOrderEventsLog([])}
+                          className="px-2 py-0.5 text-[10px] text-rose-400 hover:text-rose-300 font-semibold cursor-pointer"
+                        >
+                          Clear Log
+                        </button>
+                      )}
+                    </div>
+
+                    {orderEventsLog.length === 0 ? (
+                      <div className="text-center py-8 text-slate-600 text-xs border border-slate-800/60 rounded-xl bg-slate-900/10 font-mono">
+                        No live order notifications received yet. Waiting for order updates...
+                      </div>
+                    ) : (
+                      <div className="border border-slate-800/80 rounded-xl bg-slate-950/40 divide-y divide-slate-800/40 overflow-hidden max-h-[250px] overflow-y-auto font-mono text-[11px]">
+                        {orderEventsLog.map((log) => {
+                          const statusUpper = log.status.toUpperCase();
+                          const isSuccess = statusUpper === "COMPLETE" || statusUpper === "TRADED" || statusUpper === "SUCCESS";
+                          const isReject = statusUpper === "REJECTED";
+                          const badgeColor = isSuccess
+                            ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+                            : isReject
+                              ? "text-rose-400 bg-rose-500/10 border-rose-500/20"
+                              : "text-amber-400 bg-amber-500/10 border-amber-500/20";
+
+                          return (
+                            <div key={log.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 hover:bg-slate-900/40 transition-all">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-bold text-slate-200">{log.symbol}</span>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${badgeColor}`}>
+                                    {statusUpper}
+                                  </span>
+                                  <span className={`text-[9px] font-bold px-1 py-0.2 rounded border ${log.side === "BUY" ? "text-emerald-400 border-emerald-500/10" : "text-rose-400 border-rose-500/10"}`}>
+                                    {log.side}
+                                  </span>
+                                  <span className="text-slate-500">|</span>
+                                  <span className="text-slate-400">Qty: {log.qty}</span>
+                                  <span className="text-slate-500">|</span>
+                                  <span className="text-slate-400">Price: ₹{log.price}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                                  <span>Account: <strong className="text-slate-400">{log.accountName} ({log.role})</strong></span>
+                                  <span>•</span>
+                                  <span>Id: {log.orderId}</span>
+                                </div>
+                              </div>
+                              <div className="text-[10px] text-slate-500 self-end sm:self-center">
+                                {log.timestamp}
+                              </div>
                             </div>
                           );
                         })}
