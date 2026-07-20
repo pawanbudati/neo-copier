@@ -1012,7 +1012,7 @@ export default function App() {
   const [theme, setTheme] = useState<"classic" | "modern" | "cyberpunk">(
     () => (localStorage.getItem("neo-theme") as "classic" | "modern" | "cyberpunk") || "classic"
   );
-  
+
   const [currentFavicon, setCurrentFavicon] = useState<string>(() => {
     return localStorage.getItem("neo-favicon") || "default";
   });
@@ -1246,7 +1246,6 @@ export default function App() {
   const lookupInstrument = useCallback((token: string) => {
     if (token === "Nifty 50") return { exchange_segment: "nse_cm", instrument_token: "Nifty 50", isIndex: true };
     if (token === "SENSEX") return { exchange_segment: "bse_cm", instrument_token: "SENSEX", isIndex: true };
-    if (token === "CRUDEOIL") return { exchange_segment: "mcx_fo", instrument_token: "CRUDEOIL", isIndex: true };
 
     const searchItem = searchResults.find(s => s.scriptToken === token);
     if (searchItem) {
@@ -1465,7 +1464,7 @@ export default function App() {
     const searchTokens = (leftTab === "search" && subscribeOnSearch) ? searchResults.map((s) => s.scriptToken) : [];
     const dialogToken = orderDialog ? [orderDialog.scrip.scriptToken] : [];
     const positionTokens = positions.flatMap((acc) => (acc.positions || []).map((p: any) => p.scriptToken));
-    const allTokens = [...new Set([...watchlistTokens, ...searchTokens, ...dialogToken, ...positionTokens, "Nifty 50", "SENSEX", "CRUDEOIL"])];
+    const allTokens = [...new Set([...watchlistTokens, ...searchTokens, ...dialogToken, ...positionTokens, "Nifty 50", "SENSEX"])];
     subscribeToTokens(allTokens);
   }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn, authToken, subscribeOnSearch, orderDialog]);
 
@@ -2533,25 +2532,6 @@ export default function App() {
                   <div className="text-[10px] text-slate-600 animate-pulse font-medium">loading...</div>
                 )}
               </div>
-
-              {/* CRUDEOIL FUT */}
-              <div className="gap-2">
-                <div className="text-[10px] uppercase font-bold tracking-wider text-amber-500/90 flex items-center gap-1">
-                  CRUDEOIL <span className="text-[9px] font-normal text-slate-400">FUT</span>
-                </div>
-                {quotes["CRUDEOIL"] ? (
-                  <div className="gap-1.5">
-                    <span className="text-xs font-mono font-bold text-slate-100">
-                      {quotes["CRUDEOIL"].ltp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className={`text-[10px] font-bold font-mono flex items-center gap-0.5 ${quotes["CRUDEOIL"].change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                      {quotes["CRUDEOIL"].change >= 0 ? "+" : ""}{quotes["CRUDEOIL"].change.toFixed(2)} ({quotes["CRUDEOIL"].change >= 0 ? "+" : ""}{quotes["CRUDEOIL"].changePct.toFixed(2)}%)
-                    </span>
-                  </div>
-                ) : (
-                  <div className="text-[10px] text-slate-600 animate-pulse font-medium">loading...</div>
-                )}
-              </div>
             </div>
           )}
 
@@ -3249,7 +3229,7 @@ export default function App() {
                                     className={`p-2 rounded-lg ${mOrder.transactionType === "BUY"
                                       ? "bg-emerald-500/10 text-emerald-400"
                                       : "bg-rose-500/10 text-rose-400"
-                                    }`}
+                                      }`}
                                   >
                                     <span className="text-xs font-black uppercase tracking-wider">
                                       {mOrder.transactionType}
@@ -3373,7 +3353,7 @@ export default function App() {
                                                   : sOrder.status === "CANCELLED"
                                                     ? "bg-slate-500/10 text-slate-400"
                                                     : "bg-rose-500/10 text-rose-400"
-                                              }`}
+                                                }`}
                                             >
                                               {sOrder.status}
                                             </span>
@@ -4216,11 +4196,10 @@ function EditOrderModal({
                   key={type}
                   type="button"
                   onClick={() => setOrderType(type)}
-                  className={`py-2 rounded-lg font-bold transition-all text-center border cursor-pointer ${
-                    orderType === type
+                  className={`py-2 rounded-lg font-bold transition-all text-center border cursor-pointer ${orderType === type
                       ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
                       : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
+                    }`}
                 >
                   {type}
                 </button>
