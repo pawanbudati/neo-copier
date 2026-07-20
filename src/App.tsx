@@ -1,8 +1,3 @@
-import { Navbar } from "./components/Navbar";
-import { TerminalView } from "./components/TerminalView";
-import { OrdersView } from "./components/OrdersView";
-import { AccountsView } from "./components/AccountsView";
-import { LogsView } from "./components/LogsView";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { KotakLiveFeed } from "./kotakWebSocket";
 import {
@@ -995,9 +990,6 @@ const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  // ── Main Screen View State ──
-  const [mainScreen, setMainScreen] = useState<"terminal" | "orders" | "accounts" | "logs">("terminal");
-
   // Core state
   const [accounts, setAccounts] = useState<AccountSummary[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
@@ -2494,194 +2486,1575 @@ export default function App() {
     );
   }
 
-  const handleUpdateSettings = async (newSettings: Partial<AppSettings>) => {
-    const updated = { ...settings, ...newSettings };
-    setSettings(updated);
-    try {
-      await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updated),
-      });
-      showNotification("Settings updated", "success");
-    } catch (_) {
-      showNotification("Failed to update settings", "error");
-    }
-  };
-
-  const isStarred = (token: string) => watchlist.some((w) => w.scriptToken === token);
-
   return (
     <div
       id="neo-copier-dashboard"
-      className={`min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-teal-500 selection:text-white transition-colors duration-300 ${
-        theme === "modern" ? "theme-modern" : theme === "cyberpunk" ? "theme-cyberpunk" : ""
-      }`}
+      className={`min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-teal-500 selection:text-white transition-colors duration-300 ${theme === "modern" ? "theme-modern" : theme === "cyberpunk" ? "theme-cyberpunk" : ""
+        }`}
     >
-      {/* Notification Banner */}
-      {actionStatus && (
-        <div
-          id="notification-banner"
-          className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-50 p-4 rounded-xl flex items-start gap-3 border shadow-2xl transition-all max-w-sm sm:max-w-md backdrop-blur-md ${
-            actionStatus.type === "success"
+      {/* ── HEADER ────────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-40 bg-slate-950 border-b border-slate-800 shadow-xl backdrop-blur">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col xl:flex-row items-center xl:justify-between gap-3 xl:gap-4">
+          {/* Live Index Tickers */}
+          {accounts.some((a) => a.role === "master" && a.status === "active") && (
+            <div className={`items-center justify-between xl:justify-start gap-4 bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-xl backdrop-blur-sm shadow-inner overflow-x-auto scrollbar-none max-w-full w-full xl:w-auto ${leftTab === "search" ? "hidden xl:flex" : "flex"}`}>
+              {/* NIFTY 50 */}
+              <div className="gap-2 pr-4">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">NIFTY 50</div>
+                {quotes["Nifty 50"] ? (
+                  <div className="gap-1.5">
+                    <span className="text-xs font-mono font-bold text-slate-100">
+                      {quotes["Nifty 50"].ltp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className={`text-[10px] font-bold font-mono flex items-center gap-0.5 ${quotes["Nifty 50"].change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      {quotes["Nifty 50"].change >= 0 ? "+" : ""}{quotes["Nifty 50"].change.toFixed(2)} ({quotes["Nifty 50"].change >= 0 ? "+" : ""}{quotes["Nifty 50"].changePct.toFixed(2)}%)
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-600 animate-pulse font-medium">loading...</div>
+                )}
+              </div>
+
+              {/* SENSEX */}
+              <div className="gap-2 pr-4">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">SENSEX</div>
+                {quotes["SENSEX"] ? (
+                  <div className="gap-1.5">
+                    <span className="text-xs font-mono font-bold text-slate-100">
+                      {quotes["SENSEX"].ltp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className={`text-[10px] font-bold font-mono flex items-center gap-0.5 ${quotes["SENSEX"].change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      {quotes["SENSEX"].change >= 0 ? "+" : ""}{quotes["SENSEX"].change.toFixed(2)} ({quotes["SENSEX"].change >= 0 ? "+" : ""}{quotes["SENSEX"].changePct.toFixed(2)}%)
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-600 animate-pulse font-medium">loading...</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 xl:pb-0 w-full xl:w-auto xl:justify-end whitespace-nowrap">
+            {/* SSE Status */}
+            <div
+              className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border ${sseConnected
+                ? "bg-teal-500/10 border-teal-500/20 text-teal-400"
+                : "bg-slate-800 border-slate-700 text-slate-500"
+                }`}
+              title={sseConnected ? "Live price feed connected" : "Price feed disconnected"}
+            >
+              {sseConnected ? (
+                <Wifi className="w-3.5 h-3.5" />
+              ) : (
+                <WifiOff className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden sm:inline font-semibold">
+                {sseConnected ? "LIVE FEED" : "FEED OFF"}
+              </span>
+            </div>
+
+            {/* Clock */}
+            <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-mono font-medium text-slate-300">
+              <Clock className="w-4 h-4 text-teal-400 animate-pulse" />
+              <span>IST: {currentTime || "09:15:00 AM"}</span>
+            </div>
+
+            {/* Auto-replicator */}
+            <button
+              id="replication-toggle"
+              onClick={toggleAutoReplicate}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${settings.autoReplicate
+                ? "bg-teal-500 text-slate-950 font-bold"
+                : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+                }`}
+            >
+              <Zap className="w-4 h-4" />
+              <span>REPLICATOR</span>
+            </button>
+
+            {/* Help / Guide Toggle */}
+            <button
+              id="guide-toggle"
+              onClick={() => setShowHelp((prev) => !prev)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${showHelp
+                ? "bg-teal-500 text-slate-950 font-bold"
+                : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+                }`}
+            >
+              <HelpCircle className="w-4 h-4" />
+            </button>
+
+            {/* Refresh sessions */}
+            <button
+              id="global-session-refresh"
+              onClick={handleRefreshAllSessions}
+              disabled={refreshingAll}
+              className="p-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              title="Refresh sessions for all accounts"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshingAll ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Sync</span>
+            </button>
+
+            {/* Power Toggle */}
+            <button
+              id="power-toggle"
+              onClick={togglePower}
+              className={`p-2 border rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer ${powerOn
+                ? "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/20 text-emerald-400"
+                : "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-400 animate-pulse"
+                }`}
+              title={powerOn ? "Suspend all background quote polling (Save GCP bill)" : "Resume all background quote polling"}
+            >
+              <Power className="w-4 h-4" />
+            </button>
+
+            {/* Theme Toggle */}
+            <button
+              id="theme-toggle"
+              onClick={() => setTheme((prev) => (prev === "classic" ? "modern" : prev === "modern" ? "cyberpunk" : "classic"))}
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              title="Toggle theme (IntelliJ Dark vs. Modern Light vs. Cyberpunk Neon)"
+            >
+              {theme === "classic" ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : theme === "modern" ? (
+                <Moon className="w-4 h-4 text-indigo-400" />
+              ) : (
+                <Zap className="w-4 h-4 text-fuchsia-400" />
+              )}
+            </button>
+
+            {/* Favicon Toggle */}
+            <button
+              onClick={handleToggleFavicon}
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              title={`Switch application tab icon (Current: ${faviconOptions.find(opt => opt.key === currentFavicon)?.name || "NC Monogram"})`}
+            >
+              <Palette className="w-4 h-4 text-teal-400" />
+            </button>
+
+            {/* Logout Button */}
+            <button
+              onClick={() => {
+                localStorage.removeItem("admin-token");
+                setAuthToken(null);
+              }}
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              title="Logout from Admin Dashboard"
+            >
+              <UserMinus className="w-4 h-4 text-rose-400" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+        {/* ── NOTIFICATION ────────────────────────────────────────────────── */}
+        {actionStatus && (
+          <div
+            id="notification-banner"
+            className={`fixed top-4 right-4 sm:top-6 sm:right-6 z-50 p-4 rounded-xl flex items-start gap-3 border shadow-2xl transition-all max-w-sm sm:max-w-md backdrop-blur-md ${actionStatus.type === "success"
               ? "bg-teal-950/90 border-teal-500/40 text-teal-300"
               : actionStatus.type === "error"
-              ? "bg-rose-950/90 border-rose-500/40 text-rose-300"
-              : "bg-sky-950/90 border-sky-500/40 text-sky-300"
-          }`}
-        >
-          {actionStatus.type === "success" ? (
-            <CheckCircle2 className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-          )}
-          <div className="flex-grow">
-            <p className="text-sm font-medium">{actionStatus.message}</p>
-          </div>
-          <button
-            onClick={() => setActionStatus(null)}
-            className="text-slate-400 hover:text-white shrink-0 font-bold ml-1 hover:scale-115 transition-transform"
-            style={{ lineHeight: 1 }}
+                ? "bg-rose-950/90 border-rose-500/40 text-rose-300"
+                : "bg-sky-950/90 border-sky-500/40 text-sky-300"
+              }`}
           >
-            &times;
-          </button>
+            {actionStatus.type === "success" ? (
+              <CheckCircle2 className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+            )}
+            <div className="flex-grow">
+              <p className="text-sm font-medium">{actionStatus.message}</p>
+            </div>
+            <button
+              onClick={() => setActionStatus(null)}
+              className="text-slate-400 hover:text-white shrink-0 font-bold ml-1 hover:scale-115 transition-transform"
+              style={{ lineHeight: 1 }}
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
+        {/* ── GUIDE ───────────────────────────────────────────────────────── */}
+        {showHelp && (
+          <div
+            id="info-workspace-guide"
+            className="bg-gradient-to-r from-teal-950/20 to-slate-900 border border-teal-500/20 rounded-xl p-5 relative"
+          >
+            <button
+              onClick={() => setShowHelp(false)}
+              className="absolute top-3 right-3 text-slate-400 hover:text-white text-xs px-2 py-1 rounded hover:bg-slate-800"
+            >
+              Dismiss Guide
+            </button>
+            <div className="flex items-start gap-3">
+              <HelpCircle className="w-6 h-6 text-teal-400 shrink-0 mt-0.5" />
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-teal-300">
+                  Kotak Neo Multi-Account Trade Copier — Quick Start
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
+                  {[
+                    {
+                      title: "1. Master Setup",
+                      desc: "Register one Master account. All trades replicate from it.",
+                    },
+                    {
+                      title: "2. Search & Watch",
+                      desc: "Use Search tab to find instruments. Star ★ them to watchlist.",
+                    },
+                    {
+                      title: "3. Live Prices",
+                      desc: "Watchlisted & searched instruments stream live LTP via SSE.",
+                    },
+                    {
+                      title: "4. Quick Trade",
+                      desc: "Hit BUY/SELL on any row to instantly place & replicate.",
+                    },
+                  ].map((card) => (
+                    <div
+                      key={card.title}
+                      className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800"
+                    >
+                      <span className="text-[10px] uppercase font-bold text-teal-400 block mb-1">
+                        {card.title}
+                      </span>
+                      <span className="text-xs text-slate-400">{card.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MAIN GRID ────────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* ── LEFT PANEL ─────────────────────────────────────────────────── */}
+          <section className="lg:col-span-12 space-y-6">
+            <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+              {/* Tab Bar */}
+              <div className="border-b border-slate-800 bg-slate-900/50">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 pt-3 gap-2">
+                  <div className="flex gap-1 overflow-x-auto scrollbar-none max-w-full pb-1 sm:pb-0 whitespace-nowrap">
+                    {(
+                      [
+                        { id: "accounts", label: "Accounts", icon: Users },
+                        { id: "search", label: "Search", icon: Search },
+                        { id: "pending", label: "Pending Orders", icon: Clock, badge: pendingMasterOrders.length || undefined },
+                        { id: "watchlist", label: "Watchlist", icon: Star, badge: watchlist.length },
+                        { id: "positions", label: "Positions & Funds", icon: Activity },
+                        { id: "logs", label: "System Logs", icon: Terminal },
+                      ] as { id: LeftTab; label: string; icon: any; badge?: number }[]
+                    ).map(({ id, label, icon: Icon, badge }) => (
+                      <button
+                        key={id}
+                        onClick={() => setLeftTab(id)}
+                        className={`px-3 sm:px-4 py-2.5 text-xs font-semibold rounded-t-lg flex items-center gap-1.5 cursor-pointer transition-all border-b-2 shrink-0 ${leftTab === id
+                          ? "text-teal-400 border-teal-500 bg-slate-950"
+                          : "text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-800/50"
+                          }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        <span>{label}</span>
+                        {badge !== undefined && (
+                          <span className="font-mono bg-slate-800 text-[10px] text-slate-300 px-1.5 py-0.5 rounded">
+                            {badge}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  {!powerOn && (
+                    <div className="bg-rose-500/10 border-b border-rose-500/20 px-4 py-2.5 text-xs text-rose-400 flex items-center gap-2 font-semibold">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>Background price quote polling is currently suspended (GCP Save Mode). Click the Power button in the header to resume.</span>
+                    </div>
+                  )}
+
+                  {/* Tab-specific action */}
+                  {leftTab === "accounts" && (
+                    <button
+                      id="add-account-btn"
+                      onClick={() => {
+                        if (showAddForm) resetForm();
+                        else setShowAddForm(true);
+                      }}
+                      className="px-3 py-1.5 mb-1 bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold rounded-lg text-xs flex items-center gap-1 cursor-pointer transition-all"
+                    >
+                      {showAddForm ? (
+                        "Cancel"
+                      ) : (
+                        <>
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Account</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {leftTab === "positions" && (
+                    <button
+                      onClick={handleExitAllPositions}
+                      disabled={exitingAll}
+                      className="px-3 py-1.5 mb-1 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer animate-pulse"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>{exitingAll ? "EXITING ALL..." : "EMERGENCY EXIT ALL"}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ── ACCOUNTS TAB ──────────────────────────────────────────── */}
+              {leftTab === "accounts" && (
+                <div>
+                  {showAddForm && (
+                    <form
+                      onSubmit={handleSaveAccount}
+                      className="p-5 border-b border-slate-800 bg-slate-900/30 space-y-4"
+                    >
+                      <h3 className="text-xs font-bold uppercase text-teal-400 tracking-wider">
+                        {editingAccountId
+                          ? "Edit Kotak Neo Account"
+                          : "Register Kotak Neo Account"}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs text-slate-400 font-medium mb-1">
+                            Nickname / Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={nickname}
+                            onChange={(e) => setNickname(e.target.value)}
+                            placeholder="e.g. Master Trader"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-400 font-medium mb-1">
+                            Account Role *
+                          </label>
+                          <select
+                            value={role}
+                            onChange={(e) =>
+                              setRole(e.target.value as "master" | "slave")
+                            }
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500"
+                          >
+                            <option value="slave">Slave (Copier Sub-Account)</option>
+                            <option value="master">Master (Main Trader)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-400 font-medium mb-1">
+                            Mobile Number *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            maxLength={10}
+                            value={mobileNumber}
+                            onChange={(e) =>
+                              setMobileNumber(e.target.value.replace(/\D/g, ""))
+                            }
+                            placeholder="e.g. 9876543210"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-teal-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-400 font-medium mb-1">
+                            UCC (Unique Client Code) *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={ucc}
+                            onChange={(e) => setUcc(e.target.value.toUpperCase())}
+                            placeholder="e.g. ABC123"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-mono focus:outline-none focus:border-teal-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-400 font-medium mb-1">
+                            Kotak MPIN *
+                          </label>
+                          <input
+                            type="password"
+                            maxLength={6}
+                            value={mpin}
+                            onChange={(e) =>
+                              setMpin(e.target.value.replace(/\D/g, ""))
+                            }
+                            placeholder={editingAccountId ? "••••••" : "e.g. 123456"}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-mono tracking-widest focus:outline-none focus:border-teal-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-400 font-medium mb-1">
+                            Consumer Key
+                          </label>
+                          <input
+                            type="text"
+                            value={consumerKey}
+                            onChange={(e) => setConsumerKey(e.target.value)}
+                            placeholder="e.g. your_consumer_key"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-teal-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-400 font-medium mb-1">
+                            TOTP Secret — Optional
+                          </label>
+                          <input
+                            type="text"
+                            value={totpSecret}
+                            onChange={(e) => setTotpSecret(e.target.value)}
+                            placeholder="e.g. JBSWY3DPEHPK3PXP"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-teal-500 uppercase"
+                          />
+                        </div>
+                        {role === "slave" && (
+                          <div>
+                            <label className="block text-xs text-slate-400 font-medium mb-1">
+                              Lot Multiplier
+                            </label>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0.1"
+                              max="20"
+                              value={multiplier}
+                              onChange={(e) => setMultiplier(Number(e.target.value))}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-teal-500"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-end gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={resetForm}
+                          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={savingAccount}
+                          className="px-4 py-2 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-950 rounded-lg text-xs font-bold cursor-pointer transition-all flex items-center gap-1"
+                        >
+                          {savingAccount ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          )}
+                          <span>
+                            {savingAccount
+                              ? "Saving..."
+                              : editingAccountId
+                                ? "Update Account"
+                                : "Register Account"}
+                          </span>
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  <div className="p-4 space-y-4">
+                    {loadingAccounts ? (
+                      <div className="flex flex-col items-center justify-center py-10 space-y-2">
+                        <RefreshCw className="w-6 h-6 text-teal-400 animate-spin" />
+                        <span className="text-xs text-slate-400">
+                          Loading accounts...
+                        </span>
+                      </div>
+                    ) : accounts.length === 0 ? (
+                      <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-xl space-y-3">
+                        <div className="bg-slate-900 w-12 h-12 rounded-full flex items-center justify-center mx-auto text-slate-500">
+                          <Users className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-300">
+                            No accounts registered
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Add your Master account to get started.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setShowAddForm(true)}
+                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-semibold cursor-pointer"
+                        >
+                          Register First Account
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Master */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-[10px] font-bold tracking-wider uppercase text-teal-400 bg-teal-400/10 px-2 py-0.5 rounded">
+                              Master Source Account
+                            </span>
+                            <div className="h-px bg-slate-800 flex-1" />
+                          </div>
+                          {masterAcc ? (
+                            <AccountCard
+                              acc={masterAcc}
+                              totpCode={totpPreviews[masterAcc.id]}
+                              onLogin={handleLoginAccount}
+                              onEdit={handleEditAccount}
+                              onDelete={handleDeleteAccount}
+                              colorClass="border-teal-500/30"
+                              iconBg="bg-teal-500/10 text-teal-400"
+                              isLoggingIn={loggingInAccountId === masterAcc.id}
+                              isDeleting={deletingAccountId === masterAcc.id}
+                            />
+                          ) : (
+                            <div className="p-3 bg-amber-500/5 border border-amber-500/20 text-amber-300 rounded-xl text-xs flex items-center gap-2">
+                              <AlertCircle className="w-4 h-4 shrink-0" />
+                              <span>No Master Account registered.</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Slaves */}
+                        <div className="pt-2">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-[10px] font-bold tracking-wider uppercase text-sky-400 bg-sky-400/10 px-2 py-0.5 rounded">
+                              Slave Replicas ({slaveAccs.length})
+                            </span>
+                            <div className="h-px bg-slate-800 flex-1" />
+                          </div>
+                          {slaveAccs.length === 0 ? (
+                            <div className="p-3 bg-slate-900 border border-slate-800 text-slate-500 rounded-xl text-xs text-center">
+                              No slave accounts added.
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {slaveAccs.map((slave) => (
+                                <AccountCard
+                                  key={slave.id}
+                                  acc={slave}
+                                  totpCode={totpPreviews[slave.id]}
+                                  onLogin={handleLoginAccount}
+                                  onEdit={handleEditAccount}
+                                  onDelete={handleDeleteAccount}
+                                  colorClass="border-slate-800"
+                                  iconBg="bg-sky-500/10 text-sky-400"
+                                  isLoggingIn={loggingInAccountId === slave.id}
+                                  isDeleting={deletingAccountId === slave.id}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── SEARCH TAB ────────────────────────────────────────────── */}
+              {leftTab === "search" && (
+                <div className="flex flex-col h-full">
+                  {/* Search input */}
+                  <div className="p-4 border-b border-slate-800">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                        <input
+                          id="scrip-search-input"
+                          type="text"
+                          autoFocus
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search NIFTY, BANKNIFTY, SENSEX, RELIANCE…"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-teal-500 placeholder:text-slate-600"
+                        />
+                        {isSearching && (
+                          <RefreshCw className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-teal-400 animate-spin" />
+                        )}
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsScripModalOpen(true)}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-500/40 bg-teal-500/10 px-3.5 py-2 text-xs font-semibold text-teal-200 transition hover:bg-teal-500/20 cursor-pointer"
+                        >
+                          <Database className="w-3.5 h-3.5 text-teal-400" />
+                          <span>Scrip Manager</span>
+                          <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-300 font-mono text-[10px]">
+                            {(scripStatus.totalCount ?? scripStatus.count ?? 0).toLocaleString()}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2 px-1">
+                      <p className="text-[10px] text-slate-600">
+                        Hover a row to see BUY/SELL buttons and ★ favourites
+                      </p>
+                      <label className="inline-flex items-center gap-1.5 text-[10px] text-slate-500 hover:text-slate-400 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={subscribeOnSearch}
+                          onChange={toggleSubscribeOnSearch}
+                          className="rounded border-slate-700 bg-slate-900 text-teal-500 focus:ring-0 w-3 h-3 cursor-pointer"
+                        />
+                        <span>Stream search result prices</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Results */}
+                  <div className="flex-1 overflow-y-auto p-2 max-h-[420px]">
+                    {!searchQuery.trim() ? (
+                      <div className="text-center py-10 text-slate-600 text-xs space-y-2">
+                        <Search className="w-8 h-8 mx-auto text-slate-700" />
+                        <p>Type to search instruments</p>
+                        <p className="text-[10px]">
+                          Try: NIFTY, BANKNIFTY, CE, FUT, RELIANCE
+                        </p>
+                      </div>
+                    ) : searchResults.length === 0 && !isSearching ? (
+                      <div className="text-center py-8 text-slate-600 text-xs">
+                        No instruments found for "{searchQuery}"
+                      </div>
+                    ) : (
+                      <div className="space-y-2 lg:space-y-0.5">
+                        {searchResults.map((scrip) => (
+                          <ScripRow
+                            key={scrip.scriptToken}
+                            scrip={scrip}
+                            quote={quotes[scrip.scriptToken]}
+                            isFaved={watchlist.some(
+                              (w) => w.scriptToken === scrip.scriptToken
+                            )}
+                            onFav={handleToggleWatchlist}
+                            onBuySell={(s, side) => setOrderDialog({ scrip: s, side })}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer hint */}
+                  <div className="px-4 py-2 border-t border-slate-800/50 flex items-center gap-2">
+                    <div
+                      className={`w-2 h-2 rounded-full ${(wsConnected || sseConnected) ? "bg-teal-500 animate-pulse" : "bg-slate-600"
+                        }`}
+                    />
+                    <span className="text-[10px] text-slate-600">
+                      {wsConnected
+                        ? `Streaming prices (WS) for ${searchResults.length} instrument(s)`
+                        : sseConnected
+                          ? `Streaming prices (SSE) for ${searchResults.length} instrument(s)`
+                          : "Price feed inactive"}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+
+              {/* â”€â”€ PENDING ORDERS TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {leftTab === "pending" && (
+                <div className="flex flex-col h-full">
+                  <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-amber-400" />
+                      <span className="text-sm font-bold text-slate-100">
+                        Pending Orders
+                      </span>
+                      <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded font-mono">
+                        {pendingMasterOrders.length} orders
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleSyncOrderStatus}
+                        disabled={syncingOrders}
+                        className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 border border-amber-500/20 text-amber-400 rounded-lg text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                        title="Check broker for updated statuses of pending orders"
+                      >
+                        <Activity className={`w-3.5 h-3.5 ${syncingOrders ? "animate-pulse" : ""}`} />
+                        {syncingOrders ? "Syncing..." : "Sync Status"}
+                      </button>
+                      <button
+                        onClick={fetchOrders}
+                        disabled={loadingOrders}
+                        className="p-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 border border-slate-700 text-slate-300 rounded-lg cursor-pointer"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${loadingOrders ? "animate-spin" : ""}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-3 max-h-[460px]">
+                    {loadingOrders ? (
+                      <div className="text-center py-8 text-slate-400 text-xs animate-pulse">
+                        Loading pending orders...
+                      </div>
+                    ) : pendingMasterOrders.length === 0 ? (
+                      <div className="text-center py-12 text-slate-600 text-xs space-y-2">
+                        <Clock className="w-10 h-10 mx-auto text-slate-800" />
+                        <p className="font-semibold text-slate-500">
+                          No pending orders
+                        </p>
+                        <p className="text-[10px]">
+                          Orders waiting for execution will appear here
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {pendingMasterOrders.map((mOrder) => {
+                          const slaves = getSlavesForMaster(mOrder.id);
+                          const isExpanded = !!expandedMasterOrders[mOrder.id];
+
+                          return (
+                            <div
+                              key={mOrder.id}
+                              className="border border-amber-500/20 rounded-xl overflow-hidden bg-slate-900/30"
+                            >
+                              <div className="p-3 bg-slate-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div className="flex items-start gap-3">
+                                  <div
+                                    className={`p-2 rounded-lg ${mOrder.transactionType === "BUY"
+                                      ? "bg-emerald-500/10 text-emerald-400"
+                                      : "bg-rose-500/10 text-rose-400"
+                                      }`}
+                                  >
+                                    <span className="text-xs font-black uppercase tracking-wider">
+                                      {mOrder.transactionType}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="text-sm font-bold text-slate-100 font-mono">
+                                        {mOrder.symbol}
+                                      </h4>
+                                      <span className="text-[10px] text-slate-500">
+                                        [{mOrder.instrument} | {mOrder.orderType}]
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
+                                      <span>
+                                        Qty: <strong>{mOrder.quantity}</strong>
+                                      </span>
+                                      <span>
+                                        Price:{" "}
+                                        <strong>
+                                          {mOrder.orderType === "SL"
+                                            ? `â‚¹${mOrder.price} (Trigger: â‚¹${mOrder.triggerPrice})`
+                                            : mOrder.price === 0
+                                              ? "MARKET"
+                                              : `â‚¹${mOrder.price}`}
+                                        </strong>
+                                      </span>
+                                      <span>
+                                        Time:{" "}
+                                        <strong>
+                                          {new Date(mOrder.timestamp).toLocaleTimeString()}
+                                        </strong>
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                                  <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
+                                    PENDING
+                                  </span>
+                                  <button
+                                    onClick={() => setEditingOrder(mOrder)}
+                                    disabled={modifyingOrderId !== null || cancellingOrderId !== null}
+                                    className="px-2 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 border border-amber-500/20 text-amber-400 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+                                    title="Edit this pending order"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                    <span>Edit</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancelOrder(mOrder.id)}
+                                    disabled={cancellingOrderId !== null || modifyingOrderId !== null}
+                                    className="px-2 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+                                    title="Cancel this pending order"
+                                  >
+                                    {cancellingOrderId === mOrder.id ? (
+                                      <RefreshCw className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Ban className="w-3 h-3" />
+                                    )}
+                                    <span>{cancellingOrderId === mOrder.id ? "Cancelling..." : "Cancel"}</span>
+                                  </button>
+                                  <button
+                                    onClick={() => toggleMasterExpand(mOrder.id)}
+                                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-lg flex items-center gap-1.5 cursor-pointer"
+                                  >
+                                    <span>Copies ({slaves.length})</span>
+                                    {isExpanded ? (
+                                      <ChevronUp className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {isExpanded && (
+                                <div className="border-t border-slate-800/80 bg-slate-950/40 p-3 space-y-2">
+                                  <div className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 px-3 py-1">
+                                    Slave Account Replications
+                                  </div>
+                                  {slaves.length === 0 ? (
+                                    <div className="text-xs text-slate-500 text-center py-2">
+                                      No copies (auto-replicator was off or no active slaves).
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-1.5">
+                                      {slaves.map((sOrder) => (
+                                        <div
+                                          key={sOrder.id}
+                                          className="px-3 py-2 bg-slate-900/30 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            <span className="font-bold text-slate-300">
+                                              {sOrder.accountName}
+                                            </span>
+                                            <span className="text-slate-500">|</span>
+                                            <span>
+                                              Qty:{" "}
+                                              <strong className="text-slate-300">
+                                                {sOrder.quantity}
+                                              </strong>
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            {sOrder.errorMessage && (
+                                              <span
+                                                className="text-rose-400 text-[11px] font-mono mr-2"
+                                                title={sOrder.errorMessage}
+                                              >
+                                                ({sOrder.errorMessage.slice(0, 30)}...)
+                                              </span>
+                                            )}
+                                            <span
+                                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${sOrder.status === "SUCCESS"
+                                                ? "bg-emerald-500/10 text-emerald-400"
+                                                : sOrder.status === "PENDING"
+                                                  ? "bg-amber-500/10 text-amber-400 animate-pulse"
+                                                  : sOrder.status === "CANCELLED"
+                                                    ? "bg-slate-500/10 text-slate-400"
+                                                    : "bg-rose-500/10 text-rose-400"
+                                                }`}
+                                            >
+                                              {sOrder.status}
+                                            </span>
+                                            {sOrder.status === "PENDING" && (
+                                              <>
+                                                <button
+                                                  onClick={() => setEditingOrder(sOrder)}
+                                                  disabled={modifyingOrderId !== null || cancellingOrderId !== null}
+                                                  className="px-1.5 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 border border-amber-500/20 text-amber-400 rounded text-[10px] font-bold flex items-center gap-0.5 cursor-pointer transition-all"
+                                                  title="Edit this slave pending order"
+                                                >
+                                                  <Edit3 className="w-2.5 h-2.5" />
+                                                  <span>Edit</span>
+                                                </button>
+                                                <button
+                                                  onClick={() => handleCancelOrder(sOrder.id)}
+                                                  disabled={cancellingOrderId !== null || modifyingOrderId !== null}
+                                                  className="px-1.5 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-0.5 cursor-pointer transition-all"
+                                                  title="Cancel this pending order"
+                                                >
+                                                  {cancellingOrderId === sOrder.id ? (
+                                                    <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                                                  ) : (
+                                                    <Ban className="w-2.5 h-2.5" />
+                                                  )}
+                                                  <span>{cancellingOrderId === sOrder.id ? "..." : "Cancel"}</span>
+                                                </button>
+                                              </>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── WATCHLIST TAB ─────────────────────────────────────────── */}
+              {leftTab === "watchlist" && (
+                <div className="flex flex-col h-full">
+                  <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                      <span className="text-sm font-bold text-slate-100">
+                        My Watchlist
+                      </span>
+                      <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded font-mono">
+                        {watchlist.length} items
+                      </span>
+                    </div>
+                    <div
+                      className={`flex items-center gap-1.5 text-[10px] ${(wsConnected || sseConnected) ? "text-teal-400" : "text-slate-600"
+                        }`}
+                    >
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full ${(wsConnected || sseConnected) ? "bg-teal-500 animate-pulse" : "bg-slate-600"
+                          }`}
+                      />
+                      {wsConnected ? "Live prices (WS)" : sseConnected ? "Live prices (SSE)" : "No feed"}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-2 max-h-[460px]">
+                    {watchlist.length === 0 ? (
+                      <div className="text-center py-12 text-slate-600 text-xs space-y-2">
+                        <Star className="w-10 h-10 mx-auto text-slate-800" />
+                        <p className="font-semibold text-slate-500">
+                          No instruments in watchlist
+                        </p>
+                        <p className="text-[10px]">
+                          Go to Search tab and ★ star instruments to add them here
+                        </p>
+                        <button
+                          onClick={() => setLeftTab("search")}
+                          className="mt-2 px-3 py-1.5 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-lg text-xs font-semibold cursor-pointer hover:bg-teal-500/20 transition-all"
+                        >
+                          Open Search →
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 lg:space-y-0.5">
+                        {watchlist.map((item) => (
+                          <ScripRow
+                            key={item.scriptToken}
+                            scrip={item}
+                            quote={quotes[item.scriptToken]}
+                            isFaved={true}
+                            onFav={handleToggleWatchlist}
+                            onBuySell={(s, side) =>
+                              setOrderDialog({ scrip: s, side })
+                            }
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── POSITIONS & FUNDS TAB ──────────────────────────────────── */}
+              {leftTab === "positions" && (
+                <div className="flex flex-col h-full space-y-6 p-4">
+                  {/* Margin Summary Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider">Account Funds</h3>
+                      <button
+                        onClick={() => { fetchMargins(); fetchPositions(); }}
+                        disabled={loadingMargins || loadingPositions}
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-[10px] font-semibold cursor-pointer transition-all"
+                      >
+                        Refresh Funds
+                      </button>
+                    </div>
+
+                    {loadingMargins && margins.length === 0 ? (
+                      <div className="text-center py-6 text-slate-500 text-xs animate-pulse">Loading margins...</div>
+                    ) : margins.length === 0 ? (
+                      <div className="text-center py-6 text-slate-600 text-xs border border-slate-800 rounded-lg bg-slate-900/10">No active accounts to show funds.</div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {margins.map((m: any) => (
+                          <div key={m.accountId} className="bg-slate-900/40 border border-slate-800/60 p-3.5 rounded-xl space-y-3">
+                            <div className="flex items-center justify-between border-b border-slate-800/40 pb-1.5">
+                              <span className="text-xs font-bold text-slate-100 truncate max-w-[120px]">{m.accountName}</span>
+                              <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border ${m.role === "master"
+                                ? "text-teal-400 bg-teal-400/10 border-teal-500/30"
+                                : "text-amber-400 bg-amber-400/10 border-amber-500/30"
+                                }`}>
+                                {m.role ? m.role.toUpperCase() : "SLAVE"}
+                              </span>
+                            </div>
+                            {m.error ? (
+                              <div className="text-[10px] text-rose-400">{m.error}</div>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-left">
+                                <div className="flex justify-between items-center border-b border-slate-800/20 pb-0.5">
+                                  <span className="text-[10px] text-slate-500">Ledger Cash</span>
+                                  <span className="text-xs font-bold font-mono text-slate-200">₹{fmt(m.cashBalance)}</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-slate-800/20 pb-0.5">
+                                  <span className="text-[10px] text-slate-500">Available</span>
+                                  <span className="text-xs font-bold font-mono text-teal-400">₹{fmt(m.availableMargin)}</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-slate-800/20 pb-0.5">
+                                  <span className="text-[10px] text-slate-500">Margin Used</span>
+                                  <span className="text-xs font-bold font-mono text-slate-200">₹{fmt(m.utilMargin)}</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-slate-800/20 pb-0.5">
+                                  <span className="text-[10px] text-slate-500">Collateral</span>
+                                  <span className="text-xs font-bold font-mono text-slate-200">₹{fmt(m.collateral || 0)}</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-slate-800/20 pb-0.5">
+                                  <span className="text-[10px] text-slate-500">Realized MTM</span>
+                                  <span className={`text-xs font-bold font-mono ${(m.realizedPL || 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                    {(m.realizedPL || 0) >= 0 ? "+" : ""}₹{fmt(m.realizedPL || 0)}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-slate-800/20 pb-0.5">
+                                  <span className="text-[10px] text-slate-500">Unrealized MTM</span>
+                                  <span className={`text-xs font-bold font-mono ${(m.unrealizedPL || 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                    {(m.unrealizedPL || 0) >= 0 ? "+" : ""}₹{fmt(m.unrealizedPL || 0)}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bracket Orders (OCO) Section */}
+                  {activeOcos.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">Active Bracket Orders (OCO)</h3>
+                        <button
+                          onClick={fetchActiveOcos}
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-[10px] font-semibold cursor-pointer transition-all"
+                        >
+                          Refresh Brackets
+                        </button>
+                      </div>
+                      <div className="border border-slate-800/80 rounded-xl bg-slate-950/40 divide-y divide-slate-800/40 overflow-hidden max-h-[300px] overflow-y-auto">
+                        {activeOcos.map((oco: any) => (
+                          <div key={oco.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 text-xs bg-slate-900/10">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-slate-100 font-mono text-xs sm:text-sm">{oco.symbol}</span>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${oco.masterOcoId ? "text-slate-400 bg-slate-800/50 border-slate-700" : "text-[#3574f0] bg-[#3574f0]/10 border-[#3574f0]/20"}`}>
+                                  {oco.masterOcoId ? "SLAVE REPLICATED" : "MASTER BRACKET"}
+                                </span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border text-rose-400 bg-rose-400/10 border-rose-500/20">{oco.transactionType}</span>
+                              </div>
+                              <div className="flex items-center gap-4 text-[10px] text-slate-400 flex-wrap font-mono">
+                                <div>Account: <span className="font-semibold text-slate-300">{oco.accountName}</span></div>
+                                <div>Qty: <span className="font-semibold text-slate-300">{oco.quantity}</span></div>
+                                <div>SL Trigger: <span className="font-semibold text-rose-400">₹{oco.slTriggerPrice.toFixed(2)}</span></div>
+                                <div>SL Limit: <span className="font-semibold text-rose-400">₹{oco.slLimitPrice.toFixed(2)}</span></div>
+                                <div>Target: <span className="font-semibold text-emerald-400">₹{oco.tpPrice.toFixed(2)}</span></div>
+                              </div>
+                            </div>
+                            <div>
+                              <button
+                                onClick={() => handleCancelOco(oco.id)}
+                                className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold rounded-lg cursor-pointer transition-all"
+                              >
+                                CANCEL BRACKET
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Positions Section */}
+                  <div className="space-y-3 flex-1 flex flex-col">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-teal-400 uppercase tracking-wider">Trading Positions</h3>
+                      <button
+                        onClick={fetchPositions}
+                        disabled={loadingPositions}
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-[10px] font-semibold cursor-pointer transition-all"
+                      >
+                        Refresh Positions
+                      </button>
+                    </div>
+
+                    {loadingPositions && positions.length === 0 ? (
+                      <div className="text-center py-10 text-slate-500 text-xs animate-pulse">Loading positions...</div>
+                    ) : positions.length === 0 ? (
+                      <div className="text-center py-12 text-slate-600 text-xs border border-slate-800 rounded-lg bg-slate-900/10">No active accounts.</div>
+                    ) : (
+                      <div className="space-y-5 flex-1 overflow-y-auto max-h-[500px]">
+                        {positions.map((acc: any) => {
+                          const openPositions = (acc.positions || []).filter((p: any) => p.netQty !== 0);
+
+                          return (
+                            <div key={acc.accountId} className="space-y-2 border border-slate-800/80 rounded-xl p-4 bg-slate-950/40">
+                              {/* Account Header */}
+                              <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold text-slate-100">{acc.accountName}</span>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${acc.role === "master"
+                                    ? "text-teal-400 bg-teal-400/10 border-teal-500/30"
+                                    : "text-amber-400 bg-amber-400/10 border-amber-500/30"
+                                    }`}>
+                                    {acc.role ? acc.role.toUpperCase() : "SLAVE"}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-500">
+                                  {(acc.positions || []).length} positions ({openPositions.length} open)
+                                </span>
+                              </div>
+
+                              {acc.error && (
+                                <div className="text-center py-4 text-xs text-rose-400">{acc.error}</div>
+                              )}
+
+                              {(!acc.positions || acc.positions.length === 0) && !acc.error && (
+                                <div className="text-center py-4 text-xs text-slate-600">No positions found for this account.</div>
+                              )}
+
+                              {/* Positions List */}
+                              {acc.positions && acc.positions.length > 0 && (
+                                <div className="space-y-3">
+                                  {acc.positions.map((p: any, idx: number) => {
+                                    // Live P/L calculation: PL = (sellQty * sellAvg) - (buyQty * buyAvg) + (netQty * LTP)
+                                    const ltp = quotes[p.scriptToken]?.ltp || p.actvLtp || 0;
+                                    const pl = (p.sellQty * p.sellAvg) - (p.buyQty * p.buyAvg) + (p.netQty * ltp);
+                                    const isPlPos = pl >= 0;
+
+                                    return (
+                                      <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 bg-slate-900/60 border border-slate-800/40 rounded-xl hover:border-slate-700/60 transition-all">
+                                        {/* Instrument & Details */}
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-xs sm:text-sm font-bold text-slate-100 font-mono truncate">{p.symbol}</span>
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border text-teal-400 bg-teal-400/10 border-teal-500/20">{p.segment}</span>
+                                            <span className="text-[9px] text-slate-400 bg-slate-800 px-1 rounded">{p.exchange}</span>
+                                          </div>
+
+                                          {/* Position Quantity / Avg Rates details */}
+                                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-[10px] text-slate-400">
+                                            <div>NET QTY: <span className={`font-semibold font-mono ${p.netQty > 0 ? "text-emerald-400" : p.netQty < 0 ? "text-rose-400" : "text-slate-400"}`}>{p.netQty}</span></div>
+                                            <div>BUY QTY: <span className="font-semibold text-slate-300">{p.buyQty} @ ₹{fmt(p.buyAvg)}</span></div>
+                                            <div>SELL QTY: <span className="font-semibold text-slate-300">{p.sellQty} @ ₹{fmt(p.sellAvg)}</span></div>
+                                            <div>LTP: <span className="font-semibold text-teal-400 font-mono">₹{fmt(ltp)}</span></div>
+                                          </div>
+                                        </div>
+
+                                        {/* Live P/L & Square Off Action */}
+                                        <div className="flex items-center justify-between md:justify-end gap-4 border-t border-slate-800/40 pt-2 md:pt-0 md:border-t-0 shrink-0">
+                                          {/* P/L Badge */}
+                                          <div className="text-right">
+                                            <span className="text-[9px] text-slate-500 block uppercase font-semibold">P/L</span>
+                                            <span className={`text-xs sm:text-sm font-extrabold font-mono ${isPlPos ? "text-emerald-400" : "text-rose-400"}`}>
+                                              {isPlPos ? "+" : ""}₹{fmt(pl)}
+                                            </span>
+                                          </div>
+
+                                          {/* Exit Square Off Button */}
+                                          {p.netQty !== 0 && (
+                                            <>
+                                              <button
+                                                onClick={() => setSelectedOcoPosition({
+                                                  accountId: acc.accountId,
+                                                  accountName: acc.accountName,
+                                                  role: acc.role,
+                                                  symbol: p.symbol,
+                                                  netQty: p.netQty,
+                                                  segment: p.segment,
+                                                  exchange: p.exchange,
+                                                  ltp: ltp
+                                                })}
+                                                className="px-3 py-1.5 bg-[#3574f0] text-slate-100 hover:bg-[#3574f0]/90 text-xs font-bold rounded-lg cursor-pointer transition-all"
+                                              >
+                                                SET SL/TARGET
+                                              </button>
+                                              <button
+                                                onClick={() => handleExitPosition(acc.accountId, p.symbol, p.netQty, p.segment, p.exchange)}
+                                                disabled={exitingPositionId === `${acc.accountId}_${p.symbol}`}
+                                                className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-lg cursor-pointer transition-all"
+                                              >
+                                                {exitingPositionId === `${acc.accountId}_${p.symbol}` ? "EXITING..." : "SQUARE OFF"}
+                                              </button>
+                                            </>
+                                          )}
+                                          {p.netQty === 0 && (
+                                            <span className="text-[10px] font-bold text-slate-600 bg-slate-800/50 px-2 py-1 rounded-lg">
+                                              CLOSED
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {/* â”€â”€ SYSTEM LOGS TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {leftTab === "logs" && (
+                <div className="flex flex-col h-full space-y-4 p-4 font-mono">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-slate-400">Filter:</span>
+                      {(["ALL", "INFO", "WARN", "ERROR"] as const).map((filter) => (
+                        <button
+                          key={filter}
+                          onClick={() => setLogFilter(filter)}
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded border cursor-pointer transition-all ${logFilter === filter
+                            ? "bg-teal-500/10 text-teal-400 border-teal-500/30"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                            }`}
+                        >
+                          {filter}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-1.5 text-[10px] text-slate-400 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={autoRefreshLogs}
+                          onChange={(e) => setAutoRefreshLogs(e.target.checked)}
+                          className="accent-teal-500 rounded border-slate-800 bg-slate-900"
+                        />
+                        Auto-Refresh
+                      </label>
+
+                      <button
+                        onClick={fetchLogs}
+                        disabled={loadingLogs}
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-[10px] font-semibold cursor-pointer transition-all"
+                      >
+                        {loadingLogs ? "Loading..." : "Refresh"}
+                      </button>
+
+                      <a
+                        href={`${(import.meta.env.VITE_API_URL || "").replace(/\/$/, "")}/api/logs/download`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition-all"
+                      >
+                        <Download className="w-3 h-3" />
+                        Download
+                      </a>
+
+                      <button
+                        onClick={handleClearLogs}
+                        className="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded border border-rose-500/20 text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition-all"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Clear File
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Logs Console Container */}
+                  <div className="bg-slate-950 border border-slate-900 rounded-xl p-4 h-[450px] max-h-[450px] overflow-y-auto space-y-1 text-[11px] leading-relaxed text-left">
+                    {backendLogs.length === 0 ? (
+                      <div className="text-center py-12 text-slate-600 text-xs italic">
+                        {loadingLogs ? "Fetching logs from backend..." : "No logs recorded in file."}
+                      </div>
+                    ) : (
+                      backendLogs
+                        .filter((line) => {
+                          if (logFilter === "ALL") return true;
+                          return line.includes(`[${logFilter}]`);
+                        })
+                        .map((line, idx) => {
+                          let colorClass = "text-slate-400";
+                          if (line.includes("[ERROR]")) colorClass = "text-rose-400 font-semibold";
+                          else if (line.includes("[WARN]")) colorClass = "text-amber-400";
+                          else if (line.includes("[INFO]")) colorClass = "text-slate-300";
+
+                          return (
+                            <div key={idx} className={`${colorClass} whitespace-pre-wrap font-mono`}>
+                              {line}
+                            </div>
+                          );
+                        })
+                    )}
+
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+
         </div>
-      )}
 
-      {/* Top Navbar with Multi-Screen Switcher & Tickers */}
-      <Navbar
-        activeScreen={mainScreen}
-        onSelectScreen={setMainScreen}
-        quotes={quotes}
-        powerOn={powerOn}
-        onTogglePower={togglePower}
-        theme={theme}
-        onCycleTheme={() =>
-          setTheme((t) => (t === "classic" ? "modern" : t === "modern" ? "cyberpunk" : "classic"))
-        }
-        pendingOrdersCount={pendingMasterOrders.length}
-        masterAccount={masterAcc}
-        authToken={authToken}
-        onLogout={() => {
-          localStorage.removeItem("admin-token");
-          setAuthToken(null);
-        }}
-      />
+        {/* â”€â”€ COMPLETED / CANCELLED ORDERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        <section className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+          <div className="px-5 py-4 bg-slate-900/50 border-b border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Database className="w-5 h-5 text-teal-400" />
+              <h2 className="text-base font-bold text-slate-100">
+                Completed / Cancelled Orders
+              </h2>
+              {completedMasterOrders.length > 0 && (
+                <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded font-mono">
+                  {completedMasterOrders.length} orders
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleClearOrders}
+                className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                title="Clear all order logs from database"
+              >
+                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Clear Logs</span>
+              </button>
+              <button
+                onClick={fetchOrders}
+                disabled={loadingOrders}
+                className="p-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 border border-slate-800 text-slate-300 rounded-lg cursor-pointer"
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingOrders ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+          </div>
 
-      {/* Main Multi-Screen Content Container */}
-      <main className="max-w-[1700px] mx-auto px-4 py-6">
-        {mainScreen === "terminal" && (
-          <TerminalView
-            watchlist={watchlist}
-            searchResults={searchResults}
-            isSearching={isSearching}
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-            onSearchSubmit={(e: React.FormEvent) => e.preventDefault()}
-            onToggleWatchlist={handleToggleWatchlist}
-            isStarred={isStarred}
-            scripStatus={scripStatus}
-            onOpenScripModal={() => setIsScripModalOpen(true)}
-            quotes={quotes}
-            instrument={instrument}
-            onInstrumentChange={setInstrument}
-            customSymbol={customSymbol}
-            onCustomSymbolChange={setCustomSymbol}
-            optionType={optionType}
-            onOptionTypeChange={setOptionType}
-            strikePrice={strikePrice}
-            onStrikePriceChange={setStrikePrice}
-            expiry={expiry}
-            onExpiryChange={setExpiry}
-            quantity={quantity}
-            onQuantityChange={setQuantity}
-            price={price}
-            onPriceChange={setPrice}
-            orderType={orderType}
-            onOrderTypeChange={setOrderType}
-            transactionType={transactionType}
-            onTransactionTypeChange={setTransactionType}
-            submittingOrder={submittingOrder}
-            onSubmitOrder={handlePlaceOrder}
-            onOpenQuickOrder={(scrip: ScripInfo, side: "BUY" | "SELL") => setOrderDialog({ scrip, side })}
-            masterAcc={masterAcc}
-            slaveAccs={slaveAccs}
-            margins={margins}
-            loadingMargins={loadingMargins}
-            onFetchMargins={fetchMargins}
-            positions={positions}
-            loadingPositions={loadingPositions}
-            onFetchPositions={fetchPositions}
-            exitingAll={exitingAll}
-            onExitAllPositions={handleExitAllPositions}
-            exitingPositionId={exitingPositionId}
-            onExitPosition={(pos: any) => handleExitPosition(pos.accountId, pos.symbol, pos.netQty, pos.segment, pos.exchange)}
-            onOpenOcoDialog={(pos: any) => setSelectedOcoPosition(pos)}
-          />
-        )}
+          <div className="p-4 max-h-[500px] overflow-y-auto">
+            {loadingOrders ? (
+              <div className="text-center py-8 text-slate-400 text-xs">
+                Loading order logs...
+              </div>
+            ) : completedMasterOrders.length === 0 ? (
+              <div className="text-center py-10 text-slate-500 text-xs">
+                No completed or cancelled orders yet.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {completedMasterOrders.map((mOrder) => {
+                  const slaves = getSlavesForMaster(mOrder.id);
+                  const isExpanded = !!expandedMasterOrders[mOrder.id];
+                  const hasFailedSlaves = slaves.some((s) => s.status === "FAILED");
 
-        {mainScreen === "orders" && (
-          <OrdersView
-            orders={orders}
-            loadingOrders={loadingOrders}
-            onFetchOrders={fetchOrders}
-            syncingOrders={syncingOrders}
-            onSyncOrderStatus={handleSyncOrderStatus}
-            cancellingOrderId={cancellingOrderId}
-            onCancelOrder={handleCancelOrder}
-            onOpenEditModal={(order: TradeOrder) => setEditingOrder(order)}
-            onDeleteOrderRecord={handleDeleteOrder}
-            onClearAllOrderLogs={handleClearOrders}
-            modifyingOrderId={modifyingOrderId}
-          />
-        )}
+                  return (
+                    <div
+                      key={mOrder.id}
+                      className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900/10"
+                    >
+                      <div className="p-4 bg-slate-900/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`p-2 rounded-lg ${mOrder.transactionType === "BUY"
+                              ? "bg-emerald-500/10 text-emerald-400"
+                              : "bg-rose-500/10 text-rose-400"
+                              }`}
+                          >
+                            <span className="text-xs font-black uppercase tracking-wider">
+                              {mOrder.transactionType}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-bold text-slate-100 font-mono">
+                                {mOrder.symbol}
+                              </h4>
+                              <span className="text-[10px] text-slate-500">
+                                [{mOrder.instrument} | {mOrder.orderType}]
+                              </span>
 
-        {mainScreen === "accounts" && (
-          <AccountsView
-            masterAcc={masterAcc}
-            slaveAccs={slaveAccs}
-            onLoginAccount={handleLoginAccount}
-            onEditAccount={handleEditAccount}
-            onDeleteAccount={handleDeleteAccount}
-            onOpenAddModal={(roleType: "master" | "slave") => {
-              setRole(roleType);
-              setShowAddForm(true);
-            }}
-            loggingInAccountId={loggingInAccountId}
-            deletingAccountId={deletingAccountId}
-            settings={settings}
-            onUpdateSettings={handleUpdateSettings}
-            scripStatus={scripStatus}
-            onOpenScripModal={() => setIsScripModalOpen(true)}
-          />
-        )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
+                              <span>
+                                Qty: <strong>{mOrder.quantity}</strong>
+                              </span>
+                              <span>
+                                Price:{" "}
+                                <strong>
+                                  {mOrder.orderType === "SL"
+                                    ? `₹${mOrder.price} (Trigger: ₹${mOrder.triggerPrice})`
+                                    : mOrder.price === 0
+                                      ? "MARKET"
+                                      : `₹${mOrder.price}`}
+                                </strong>
+                              </span>
+                              <span>
+                                Time:{" "}
+                                <strong>
+                                  {new Date(mOrder.timestamp).toLocaleTimeString()}
+                                </strong>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
 
-        {mainScreen === "logs" && (
-          <LogsView
-            backendLogs={backendLogs}
-            loadingLogs={loadingLogs}
-            onFetchLogs={fetchLogs}
-            logFilter={logFilter}
-            onLogFilterChange={setLogFilter}
-            autoRefreshLogs={autoRefreshLogs}
-            onAutoRefreshLogsToggle={() => setAutoRefreshLogs((prev) => !prev)}
-          />
-        )}
+                        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400">Status:</span>
+                            <span
+                              className={`px-2 py-0.5 rounded text-xs font-bold ${mOrder.status === "SUCCESS"
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                : mOrder.status === "PENDING"
+                                  ? "bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse"
+                                  : mOrder.status === "CANCELLED"
+                                    ? "bg-slate-500/10 text-slate-400 border border-slate-500/20"
+                                    : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                }`}
+                            >
+                              {mOrder.status}
+                            </span>
+                            {mOrder.status === "PENDING" && (
+                              <button
+                                onClick={() => handleCancelOrder(mOrder.id)}
+                                disabled={cancellingOrderId !== null}
+                                className="px-2 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+                                title="Cancel this pending order"
+                              >
+                                {cancellingOrderId === mOrder.id ? (
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Ban className="w-3 h-3" />
+                                )}
+                                <span>{cancellingOrderId === mOrder.id ? "Cancelling..." : "Cancel"}</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => toggleMasterExpand(mOrder.id)}
+                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-lg flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>Copies ({slaves.length})</span>
+                            {hasFailedSlaves && (
+                              <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+                            )}
+                            {isExpanded ? (
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            ) : (
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteOrder(mOrder.id)}
+                            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-rose-400 hover:text-rose-300 rounded-lg cursor-pointer flex items-center justify-center border border-slate-700 transition"
+                            title="Delete this order record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="border-t border-slate-800/80 bg-slate-950/40 p-3 space-y-2">
+                          <div className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 px-3 py-1">
+                            Slave Account Replications
+                          </div>
+                          {slaves.length === 0 ? (
+                            <div className="text-xs text-slate-500 text-center py-2">
+                              No copies (auto-replicator was off or no active slaves).
+                            </div>
+                          ) : (
+                            <div className="space-y-1.5">
+                              {slaves.map((sOrder) => (
+                                <div
+                                  key={sOrder.id}
+                                  className="px-3 py-2 bg-slate-900/30 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <span className="font-bold text-slate-300">
+                                      {sOrder.accountName}
+                                    </span>
+                                    <span className="text-slate-500">|</span>
+                                    <span>
+                                      Qty:{" "}
+                                      <strong className="text-slate-300">
+                                        {sOrder.quantity}
+                                      </strong>
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {sOrder.errorMessage && (
+                                      <span
+                                        className="text-rose-400 text-[11px] font-mono mr-2"
+                                        title={sOrder.errorMessage}
+                                      >
+                                        ({sOrder.errorMessage.slice(0, 30)}...)
+                                      </span>
+                                    )}
+                                    <span
+                                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${sOrder.status === "SUCCESS"
+                                        ? "bg-emerald-500/10 text-emerald-400"
+                                        : sOrder.status === "PENDING"
+                                          ? "bg-amber-500/10 text-amber-400 animate-pulse"
+                                          : sOrder.status === "CANCELLED"
+                                            ? "bg-slate-500/10 text-slate-400"
+                                            : "bg-rose-500/10 text-rose-400"
+                                        }`}
+                                    >
+                                      {sOrder.status}
+                                    </span>
+                                    {sOrder.status === "PENDING" && (
+                                      <button
+                                        onClick={() => handleCancelOrder(sOrder.id)}
+                                        disabled={cancellingOrderId !== null}
+                                        className="px-1.5 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-0.5 cursor-pointer transition-all"
+                                        title="Cancel this pending order"
+                                      >
+                                        {cancellingOrderId === sOrder.id ? (
+                                          <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                                        ) : (
+                                          <Ban className="w-2.5 h-2.5" />
+                                        )}
+                                        <span>{cancellingOrderId === sOrder.id ? "..." : "Cancel"}</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
       </main>
 
-      {/* Footer */}
+      {/* ── FOOTER ─────────────────────────────────────────────────────────── */}
       <footer className="border-t border-slate-800/60 bg-slate-950 text-slate-500 text-xs py-8 mt-12 text-center">
         <div className="max-w-7xl mx-auto px-4 space-y-2">
-          <p className="font-mono font-bold text-slate-400">
-            Neo Copier v2.0 — Multi-Screen Kotak Neo Trade Copier
+          <p>
+            Neo Copier — Kotak Neo F&O Trade Copier with Live Instrument Search &
+            Watchlist
           </p>
           <p className="text-[11px]">
-            Trade Terminal • Orders & Replication Logs • Account Management • System Diagnostics
+            Search instruments → Star to watchlist → Buy/Sell with one click →
+            Replicates to all slave accounts.
           </p>
         </div>
       </footer>
 
-      {/* Global Modals */}
+      {/* ── SCRIP MASTER MANAGER MODAL ────────────────────────────────────── */}
       <ScripManagerModal
         isOpen={isScripModalOpen}
         onClose={() => setIsScripModalOpen(false)}
@@ -2697,6 +4070,7 @@ export default function App() {
         onCacheScrips={handleCacheScrips}
       />
 
+      {/* ── QUICK ORDER DIALOG ─────────────────────────────────────────────── */}
       {orderDialog && (
         <QuickOrderDialog
           scrip={orderDialog.scrip}
