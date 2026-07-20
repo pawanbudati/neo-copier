@@ -2500,7 +2500,7 @@ export default function App() {
           {accounts.some((a) => a.role === "master" && a.status === "active") && (
             <div className={`items-center justify-between xl:justify-start gap-4 bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-xl backdrop-blur-sm shadow-inner overflow-x-auto scrollbar-none max-w-full w-full xl:w-auto ${leftTab === "search" ? "hidden xl:flex" : "flex"}`}>
               {/* NIFTY 50 */}
-              <div className="gap-2 pr-4 border-r border-slate-800/80">
+              <div className="gap-2 pr-4">
                 <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">NIFTY 50</div>
                 {quotes["Nifty 50"] ? (
                   <div className="gap-1.5">
@@ -2517,7 +2517,7 @@ export default function App() {
               </div>
 
               {/* SENSEX */}
-              <div className="gap-2 pr-4 border-r border-slate-800/80">
+              <div className="gap-2 pr-4">
                 <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">SENSEX</div>
                 {quotes["SENSEX"] ? (
                   <div className="gap-1.5">
@@ -4197,8 +4197,8 @@ function EditOrderModal({
                   type="button"
                   onClick={() => setOrderType(type)}
                   className={`py-2 rounded-lg font-bold transition-all text-center border cursor-pointer ${orderType === type
-                      ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                    ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                    : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
                     }`}
                 >
                   {type}
