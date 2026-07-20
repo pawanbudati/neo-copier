@@ -2,20 +2,10 @@ import React, { useState } from "react";
 import {
   Search,
   Star,
-  StarOff,
-  Trash2,
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  Zap,
-  Sliders,
-  DollarSign,
-  Play,
   RefreshCw,
-  HelpCircle,
+  Zap,
+  Activity,
   Database,
-  ArrowUpRight,
-  ArrowDownRight,
 } from "lucide-react";
 import {
   AccountSummary,
@@ -138,14 +128,14 @@ export function TerminalView({
     <div className="space-y-6">
       {/* Top Section: Left (Watchlist & Search) + Right (Quick Order Pad) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Watchlist & Scrip Search (7 Cols) */}
-        <div className="lg:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl overflow-hidden backdrop-blur-sm flex flex-col min-h-[520px]">
+        {/* Left Column: Watchlist & Scrip Search (7 Cols on desktop, 12 on mobile) */}
+        <div className="lg:col-span-7 bg-slate-900/40 border border-slate-800/80 rounded-2xl overflow-hidden backdrop-blur-sm flex flex-col min-h-[460px] sm:min-h-[520px]">
           {/* Sub-tabs header */}
-          <div className="p-3 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
-            <div className="flex items-center gap-2">
+          <div className="p-2.5 sm:p-3 border-b border-slate-800 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 bg-slate-950/60">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 onClick={() => setTerminalTab("watchlist")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   terminalTab === "watchlist"
                     ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
                     : "text-slate-400 hover:text-slate-200"
@@ -157,20 +147,20 @@ export function TerminalView({
 
               <button
                 onClick={() => setTerminalTab("search")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   terminalTab === "search"
                     ? "bg-teal-500/10 text-teal-400 border border-teal-500/30"
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 <Search className="w-3.5 h-3.5" />
-                <span>Search Instruments</span>
+                <span>Search</span>
               </button>
             </div>
 
             <button
               onClick={onOpenScripModal}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 cursor-pointer shrink-0 ml-auto sm:ml-0"
             >
               <Database className="w-3 h-3 text-teal-400" />
               <span>Db Master ({scripStatus.totalCount})</span>
@@ -178,16 +168,16 @@ export function TerminalView({
           </div>
 
           {/* Tab Content */}
-          <div className="p-4 flex-1 overflow-y-auto">
+          <div className="p-3 sm:p-4 flex-1 overflow-y-auto">
             {terminalTab === "watchlist" ? (
               // Watchlist view
               <div>
                 {watchlist.length === 0 ? (
-                  <div className="text-center py-16 text-slate-500 text-xs">
+                  <div className="text-center py-12 sm:py-16 text-slate-500 text-xs px-4">
                     <Star className="w-8 h-8 mx-auto mb-2 text-slate-600 opacity-40" />
-                    <p>Your Watchlist is empty.</p>
-                    <p className="text-[11px] text-slate-600 mt-1">
-                      Search for instruments and click the star icon to pin them here for fast 1-click execution.
+                    <p className="font-semibold text-slate-400">Your Watchlist is empty.</p>
+                    <p className="text-[11px] text-slate-600 mt-1 max-w-sm mx-auto">
+                      Switch to the Search tab to search instruments and click the star icon to pin them here for 1-click execution.
                     </p>
                   </div>
                 ) : (
@@ -201,7 +191,7 @@ export function TerminalView({
                         >
                           <div className="flex items-start justify-between">
                             <div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <h4 className="text-xs font-mono font-bold text-slate-100">
                                   {item.tradingSymbol}
                                 </h4>
@@ -222,8 +212,8 @@ export function TerminalView({
                             </button>
                           </div>
 
-                          {/* Live Quote Price */}
-                          <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
+                          {/* Live Quote Price & Action Buttons */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800/60">
                             <div>
                               {q ? (
                                 <div className="flex items-baseline gap-2">
@@ -248,16 +238,16 @@ export function TerminalView({
                             </div>
 
                             {/* 1-Click Buy / Sell buttons */}
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 w-full sm:w-auto">
                               <button
                                 onClick={() => onOpenQuickOrder(item, "BUY")}
-                                className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold text-[11px] rounded-lg cursor-pointer transition-all"
+                                className="flex-1 sm:flex-none px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold text-xs rounded-lg cursor-pointer transition-all text-center"
                               >
                                 BUY
                               </button>
                               <button
                                 onClick={() => onOpenQuickOrder(item, "SELL")}
-                                className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold text-[11px] rounded-lg cursor-pointer transition-all"
+                                className="flex-1 sm:flex-none px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold text-xs rounded-lg cursor-pointer transition-all text-center"
                               >
                                 SELL
                               </button>
@@ -272,7 +262,7 @@ export function TerminalView({
             ) : (
               // Search view
               <div className="space-y-4">
-                <form onSubmit={onSearchSubmit} className="flex gap-2">
+                <form onSubmit={onSearchSubmit} className="flex flex-col sm:flex-row gap-2">
                   <div className="relative flex-1">
                     <Search className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
                     <input
@@ -280,13 +270,13 @@ export function TerminalView({
                       placeholder="Search Banknifty, Nifty CE/PE, Stock Futures..."
                       value={searchQuery}
                       onChange={(e) => onSearchQueryChange(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 sm:py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={isSearching}
-                    className="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-slate-950 text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="px-4 py-2.5 sm:py-2 bg-teal-500 hover:bg-teal-600 text-slate-950 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     {isSearching ? (
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -306,10 +296,10 @@ export function TerminalView({
                       return (
                         <div
                           key={item.scriptToken}
-                          className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex items-center justify-between gap-3 text-xs"
+                          className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                         >
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-mono font-bold text-slate-100">
                                 {item.tradingSymbol}
                               </span>
@@ -322,35 +312,37 @@ export function TerminalView({
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/60">
                             {q && (
-                              <span className="font-mono font-bold text-teal-400">
+                              <span className="font-mono font-bold text-teal-400 text-xs">
                                 ₹{fmt(q.ltp)}
                               </span>
                             )}
-                            <button
-                              onClick={() => onToggleWatchlist(item)}
-                              className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                                starred
-                                  ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                                  : "bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200"
-                              }`}
-                              title={starred ? "Remove from Watchlist" : "Add to Watchlist"}
-                            >
-                              <Star className={`w-3.5 h-3.5 ${starred ? "fill-current" : ""}`} />
-                            </button>
-                            <button
-                              onClick={() => onOpenQuickOrder(item, "BUY")}
-                              className="px-2 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold rounded cursor-pointer"
-                            >
-                              BUY
-                            </button>
-                            <button
-                              onClick={() => onOpenQuickOrder(item, "SELL")}
-                              className="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold rounded cursor-pointer"
-                            >
-                              SELL
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => onToggleWatchlist(item)}
+                                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                                  starred
+                                    ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                                    : "bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200"
+                                }`}
+                                title={starred ? "Remove from Watchlist" : "Add to Watchlist"}
+                              >
+                                <Star className={`w-3.5 h-3.5 ${starred ? "fill-current" : ""}`} />
+                              </button>
+                              <button
+                                onClick={() => onOpenQuickOrder(item, "BUY")}
+                                className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold rounded cursor-pointer"
+                              >
+                                BUY
+                              </button>
+                              <button
+                                onClick={() => onOpenQuickOrder(item, "SELL")}
+                                className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold rounded cursor-pointer"
+                              >
+                                SELL
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -362,9 +354,9 @@ export function TerminalView({
           </div>
         </div>
 
-        {/* Right Column: Quick Order Pad (5 Cols) */}
-        <div className="lg:col-span-5 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        {/* Right Column: Quick Order Pad (5 Cols on desktop, 12 on mobile) */}
+        <div className="lg:col-span-5 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-teal-400" />
               <h3 className="text-sm font-bold text-slate-100 font-mono">Order Pad</h3>
@@ -382,7 +374,7 @@ export function TerminalView({
               <button
                 type="button"
                 onClick={() => onTransactionTypeChange("BUY")}
-                className={`py-2 rounded-lg font-bold transition-all text-center cursor-pointer ${
+                className={`py-2 rounded-lg font-bold transition-all text-center cursor-pointer text-xs ${
                   transactionType === "BUY"
                     ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
                     : "text-slate-400 hover:text-slate-200"
@@ -393,7 +385,7 @@ export function TerminalView({
               <button
                 type="button"
                 onClick={() => onTransactionTypeChange("SELL")}
-                className={`py-2 rounded-lg font-bold transition-all text-center cursor-pointer ${
+                className={`py-2 rounded-lg font-bold transition-all text-center cursor-pointer text-xs ${
                   transactionType === "SELL"
                     ? "bg-rose-500 text-slate-950 shadow-md shadow-rose-500/20"
                     : "text-slate-400 hover:text-slate-200"
@@ -432,13 +424,13 @@ export function TerminalView({
                 />
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
                   <label className="block text-slate-400 font-semibold mb-1">Type</label>
                   <select
                     value={optionType}
                     onChange={(e) => onOptionTypeChange(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2 py-2 text-slate-100 font-mono focus:outline-none focus:border-teal-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono focus:outline-none focus:border-teal-500"
                   >
                     <option value="CE">CE</option>
                     <option value="PE">PE</option>
@@ -451,7 +443,7 @@ export function TerminalView({
                     type="text"
                     value={strikePrice}
                     onChange={(e) => onStrikePriceChange(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2 py-2 text-slate-100 font-mono font-bold focus:outline-none focus:border-teal-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono font-bold focus:outline-none focus:border-teal-500"
                   />
                 </div>
                 <div>
@@ -460,14 +452,14 @@ export function TerminalView({
                     type="date"
                     value={expiry}
                     onChange={(e) => onExpiryChange(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2 py-2 text-slate-100 font-mono text-[11px] focus:outline-none focus:border-teal-500"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2 py-2 text-slate-100 font-mono text-xs focus:outline-none focus:border-teal-500"
                   />
                 </div>
               </div>
             )}
 
             {/* Order Type & Price */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-slate-400 font-semibold mb-1">Order Type</label>
                 <select
@@ -496,9 +488,9 @@ export function TerminalView({
 
             {/* Quantity & Presets */}
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex flex-wrap items-center justify-between gap-1 mb-1">
                 <label className="text-slate-400 font-semibold">Quantity</label>
-                <div className="flex gap-1">
+                <div className="flex items-center gap-1 flex-wrap">
                   {[25, 50, 100, 250].map((qVal) => (
                     <button
                       key={qVal}
@@ -524,7 +516,7 @@ export function TerminalView({
             <button
               type="submit"
               disabled={submittingOrder}
-              className={`w-full py-3 rounded-xl font-bold text-sm tracking-wide transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 ${
+              className={`w-full py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 ${
                 transactionType === "BUY"
                   ? "bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-emerald-500/20"
                   : "bg-rose-500 hover:bg-rose-600 text-slate-950 shadow-rose-500/20"
@@ -542,19 +534,19 @@ export function TerminalView({
       </div>
 
       {/* Bottom Section: Positions & Margins */}
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm space-y-4">
+      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-emerald-400" />
             <h3 className="text-sm font-bold text-slate-100 font-mono">Open Positions & Margins</h3>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               onClick={() => {
                 onFetchPositions();
                 onFetchMargins();
               }}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loadingPositions ? "animate-spin" : ""}`} />
               <span>Refresh</span>
@@ -562,7 +554,7 @@ export function TerminalView({
             <button
               onClick={onExitAllPositions}
               disabled={exitingAll}
-              className="px-3 py-1 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50"
+              className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50"
             >
               <span>{exitingAll ? "Exiting All..." : "Exit All Positions"}</span>
             </button>
@@ -583,7 +575,7 @@ export function TerminalView({
             {positions.map((accPos) => (
               <div
                 key={accPos.accountId}
-                className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-3"
+                className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 sm:p-4 space-y-3"
               >
                 <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
                   <span className="font-bold text-xs text-slate-200 font-mono">
@@ -601,10 +593,10 @@ export function TerminalView({
                     {accPos.positions.map((pos: any, idx: number) => (
                       <div
                         key={idx}
-                        className="p-2.5 bg-slate-950/60 rounded-lg border border-slate-800 flex items-center justify-between text-xs"
+                        className="p-2.5 bg-slate-950/60 rounded-lg border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                       >
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-mono font-bold text-slate-100">
                               {pos.tradingSymbol || pos.symbol}
                             </span>
@@ -623,17 +615,17 @@ export function TerminalView({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 justify-end pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-800/40">
                           <button
                             onClick={() => onOpenOcoDialog(pos)}
-                            className="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold rounded cursor-pointer"
+                            className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold rounded cursor-pointer"
                           >
                             OCO
                           </button>
                           <button
                             onClick={() => onExitPosition(pos)}
                             disabled={exitingPositionId === pos.symbol}
-                            className="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold rounded cursor-pointer disabled:opacity-50"
+                            className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold rounded cursor-pointer disabled:opacity-50"
                           >
                             {exitingPositionId === pos.symbol ? "..." : "Exit"}
                           </button>

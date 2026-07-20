@@ -4,8 +4,6 @@ import {
   Plus,
   TrendingUp,
   Sliders,
-  CheckCircle2,
-  AlertCircle,
   Play,
   Settings,
   Trash2,
@@ -50,9 +48,9 @@ export function AccountsView({
   return (
     <div className="space-y-6">
       {/* Top Section: Copier Settings & Scrip Cache Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Copier Controls */}
-        <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm space-y-4">
+        <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-sm space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
             <Sliders className="w-4 h-4 text-teal-400" />
             <h3 className="text-sm font-bold text-slate-100 font-mono">Global Replicator Controls</h3>
@@ -60,7 +58,7 @@ export function AccountsView({
 
           <div className="space-y-3">
             {/* Auto Replicate Toggle */}
-            <div className="flex items-center justify-between p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
+            <div className="flex items-center justify-between p-3 bg-slate-950/60 border border-slate-800 rounded-xl gap-3">
               <div>
                 <h4 className="text-xs font-bold text-slate-200">Auto Order Replication</h4>
                 <p className="text-[11px] text-slate-400">
@@ -71,7 +69,7 @@ export function AccountsView({
                 onClick={() =>
                   onUpdateSettings({ autoReplicate: !settings.autoReplicate })
                 }
-                className={`w-12 h-6 rounded-full transition-all relative p-1 cursor-pointer ${
+                className={`w-12 h-6 rounded-full transition-all relative p-1 cursor-pointer shrink-0 ${
                   settings.autoReplicate ? "bg-emerald-500" : "bg-slate-700"
                 }`}
               >
@@ -84,7 +82,7 @@ export function AccountsView({
             </div>
 
             {/* Auto Renew Sessions Toggle */}
-            <div className="flex items-center justify-between p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
+            <div className="flex items-center justify-between p-3 bg-slate-950/60 border border-slate-800 rounded-xl gap-3">
               <div>
                 <h4 className="text-xs font-bold text-slate-200">Auto Session Renewal</h4>
                 <p className="text-[11px] text-slate-400">
@@ -95,7 +93,7 @@ export function AccountsView({
                 onClick={() =>
                   onUpdateSettings({ autoRenewSessions: !settings.autoRenewSessions })
                 }
-                className={`w-12 h-6 rounded-full transition-all relative p-1 cursor-pointer ${
+                className={`w-12 h-6 rounded-full transition-all relative p-1 cursor-pointer shrink-0 ${
                   settings.autoRenewSessions ? "bg-emerald-500" : "bg-slate-700"
                 }`}
               >
@@ -110,9 +108,9 @@ export function AccountsView({
         </div>
 
         {/* Instrument Master Database Status Card */}
-        <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm flex flex-col justify-between space-y-4">
+        <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-sm flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
               <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-teal-400" />
                 <h3 className="text-sm font-bold text-slate-100 font-mono">
@@ -140,8 +138,8 @@ export function AccountsView({
       </div>
 
       {/* Master Account Section */}
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-teal-400" />
             <h3 className="text-sm font-bold text-slate-100 font-mono">Master Account</h3>
@@ -149,7 +147,7 @@ export function AccountsView({
           {!masterAcc && (
             <button
               onClick={() => onOpenAddModal("master")}
-              className="px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1 cursor-pointer transition-all"
+              className="px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1 cursor-pointer transition-all ml-auto"
             >
               <Plus className="w-4 h-4" />
               <span>Add Master Account</span>
@@ -176,8 +174,8 @@ export function AccountsView({
       </div>
 
       {/* Slave Accounts Section */}
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-sky-400" />
             <h3 className="text-sm font-bold text-slate-100 font-mono">
@@ -186,7 +184,7 @@ export function AccountsView({
           </div>
           <button
             onClick={() => onOpenAddModal("slave")}
-            className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1 cursor-pointer transition-all"
+            className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1 cursor-pointer transition-all ml-auto"
           >
             <Plus className="w-4 h-4" />
             <span>Add Slave Account</span>
@@ -194,11 +192,11 @@ export function AccountsView({
         </div>
 
         {slaveAccs.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 text-xs">
+          <div className="text-center py-10 text-slate-500 text-xs">
             No Slave accounts configured. Add slave accounts to replicate master orders with customized position sizing.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {slaveAccs.map((slave) => (
               <AccountCardItem
                 key={slave.id}
@@ -241,15 +239,15 @@ function AccountCardItem({
 }) {
   return (
     <div
-      className={`bg-slate-900/60 border ${colorClass} rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4`}
+      className={`bg-slate-900/60 border ${colorClass} rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3`}
     >
       <div className="flex items-start gap-3">
-        <div className={`${iconBg} p-2.5 rounded-xl mt-0.5`}>
-          <TrendingUp className="w-5 h-5" />
+        <div className={`${iconBg} p-2.5 rounded-xl shrink-0 mt-0.5`}>
+          <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h4 className="text-sm font-bold text-slate-100 font-mono">{acc.nickname}</h4>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h4 className="text-xs sm:text-sm font-bold text-slate-100 font-mono">{acc.nickname}</h4>
             <span
               className={`w-2 h-2 rounded-full ${
                 acc.status === "active" ? "bg-emerald-500 animate-ping" : "bg-slate-500"
@@ -257,7 +255,7 @@ function AccountCardItem({
             />
             <span className="text-[10px] text-slate-400 font-mono">({acc.mobileNumber})</span>
             {acc.role === "slave" && (
-              <span className="text-[10px] font-semibold bg-slate-800 text-sky-300 px-2 py-0.5 rounded border border-slate-700 font-mono">
+              <span className="text-[10px] font-semibold bg-slate-800 text-sky-300 px-1.5 py-0.5 rounded border border-slate-700 font-mono">
                 {acc.multiplier}x Multiplier
               </span>
             )}
@@ -284,18 +282,18 @@ function AccountCardItem({
             )}
           </div>
           {acc.errorMessage && (
-            <p className="text-[11px] text-rose-400 bg-rose-950/20 px-2 py-1 rounded border border-rose-500/10 font-mono">
+            <p className="text-[10px] sm:text-[11px] text-rose-400 bg-rose-950/20 px-2 py-1 rounded border border-rose-500/10 font-mono break-all">
               {acc.errorMessage}
             </p>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2 self-end md:self-center">
+      <div className="flex items-center gap-2 justify-end w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/40">
         <button
           onClick={() => onLogin(acc)}
           disabled={isLoggingIn || isDeleting}
-          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-teal-500 disabled:opacity-50 text-xs font-semibold rounded-xl flex items-center gap-1 cursor-pointer transition-all"
+          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-teal-500 disabled:opacity-50 text-xs font-semibold rounded-xl flex items-center justify-center gap-1 cursor-pointer transition-all"
         >
           {isLoggingIn ? (
             <RefreshCw className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
