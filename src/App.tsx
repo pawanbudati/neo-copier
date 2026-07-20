@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { KotakLiveFeed } from "./kotakWebSocket";
 import {
   Users,
@@ -1462,7 +1462,7 @@ export default function App() {
     const searchTokens = (leftTab === "search" && subscribeOnSearch) ? searchResults.map((s) => s.scriptToken) : [];
     const dialogToken = orderDialog ? [orderDialog.scrip.scriptToken] : [];
     const positionTokens = positions.flatMap((acc) => (acc.positions || []).map((p: any) => p.scriptToken));
-    const allTokens = [...new Set([...watchlistTokens, ...searchTokens, ...dialogToken, ...positionTokens, "Nifty 50", "SENSEX"])];
+    const allTokens = [...new Set([...watchlistTokens, ...searchTokens, ...dialogToken, ...positionTokens, "Nifty 50", "SENSEX", "CRUDEOIL"])];
     subscribeToTokens(allTokens);
   }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn, authToken, subscribeOnSearch, orderDialog]);
 
@@ -2471,7 +2471,7 @@ export default function App() {
           {accounts.some((a) => a.role === "master" && a.status === "active") && (
             <div className={`items-center justify-between xl:justify-start gap-4 bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-xl backdrop-blur-sm shadow-inner overflow-x-auto scrollbar-none max-w-full w-full xl:w-auto ${leftTab === "search" ? "hidden xl:flex" : "flex"}`}>
               {/* NIFTY 50 */}
-              <div className="gap-2 pr-4 ">
+              <div className="gap-2 pr-4 border-r border-slate-800/80">
                 <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">NIFTY 50</div>
                 {quotes["Nifty 50"] ? (
                   <div className="gap-1.5">
@@ -2488,7 +2488,7 @@ export default function App() {
               </div>
 
               {/* SENSEX */}
-              <div className="gap-2">
+              <div className="gap-2 pr-4 border-r border-slate-800/80">
                 <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">SENSEX</div>
                 {quotes["SENSEX"] ? (
                   <div className="gap-1.5">
@@ -2497,6 +2497,25 @@ export default function App() {
                     </span>
                     <span className={`text-[10px] font-bold font-mono flex items-center gap-0.5 ${quotes["SENSEX"].change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                       {quotes["SENSEX"].change >= 0 ? "+" : ""}{quotes["SENSEX"].change.toFixed(2)} ({quotes["SENSEX"].change >= 0 ? "+" : ""}{quotes["SENSEX"].changePct.toFixed(2)}%)
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-600 animate-pulse font-medium">loading...</div>
+                )}
+              </div>
+
+              {/* CRUDEOIL FUT */}
+              <div className="gap-2">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-amber-500/90 flex items-center gap-1">
+                  CRUDEOIL <span className="text-[9px] font-normal text-slate-400">FUT</span>
+                </div>
+                {quotes["CRUDEOIL"] ? (
+                  <div className="gap-1.5">
+                    <span className="text-xs font-mono font-bold text-slate-100">
+                      {quotes["CRUDEOIL"].ltp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className={`text-[10px] font-bold font-mono flex items-center gap-0.5 ${quotes["CRUDEOIL"].change >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      {quotes["CRUDEOIL"].change >= 0 ? "+" : ""}{quotes["CRUDEOIL"].change.toFixed(2)} ({quotes["CRUDEOIL"].change >= 0 ? "+" : ""}{quotes["CRUDEOIL"].changePct.toFixed(2)}%)
                     </span>
                   </div>
                 ) : (
