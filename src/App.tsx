@@ -1316,7 +1316,6 @@ export default function App() {
     });
 
     feed.onTick((tick) => {
-      console.log("TICK", tick);
       setQuotes((prev) => {
         const next = { ...prev };
         next[tick.token] = {
