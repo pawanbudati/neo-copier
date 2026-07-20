@@ -40,6 +40,7 @@ import {
   Moon,
   Power,
   Palette,
+  Edit3,
 } from "lucide-react";
 
 // Global fetch interceptor to append Auth headers and handle 401 redirects
@@ -1061,6 +1062,8 @@ export default function App() {
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [syncingOrders, setSyncingOrders] = useState(false);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
+  const [editingOrder, setEditingOrder] = useState<TradeOrder | null>(null);
+  const [modifyingOrderId, setModifyingOrderId] = useState<string | null>(null);
 
   // ── NEW: Left panel tab ───────────────────────────────────────────────────
   const [leftTab, setLeftTab] = useState<LeftTab>("accounts");
@@ -2309,6 +2312,33 @@ export default function App() {
     }
   };
 
+  // Modify a pending order
+  const handleModifyOrder = async (
+    orderId: string,
+    updates: { price?: number; triggerPrice?: number; quantity?: number; orderType?: string }
+  ) => {
+    setModifyingOrderId(orderId);
+    try {
+      const r = await fetch(`/api/orders/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      const d = await r.json();
+      if (r.ok && d.success) {
+        showNotification("Order modified successfully", "success");
+        setEditingOrder(null);
+        fetchOrders();
+      } else {
+        showNotification(`Modification failed: ${d.detail || d.error || "Unknown error"}`, "error");
+      }
+    } catch (_) {
+      showNotification("Failed to send order modification request", "error");
+    } finally {
+      setModifyingOrderId(null);
+    }
+  };
+
   const handleDeleteOrder = async (orderId: string) => {
     if (!confirm("Are you sure you want to delete this order record? This will remove the master order and all copy logs.")) return;
     try {
@@ -3263,8 +3293,17 @@ export default function App() {
                                     PENDING
                                   </span>
                                   <button
+                                    onClick={() => setEditingOrder(mOrder)}
+                                    disabled={modifyingOrderId !== null || cancellingOrderId !== null}
+                                    className="px-2 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 border border-amber-500/20 text-amber-400 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+                                    title="Edit this pending order"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                    <span>Edit</span>
+                                  </button>
+                                  <button
                                     onClick={() => handleCancelOrder(mOrder.id)}
-                                    disabled={cancellingOrderId !== null}
+                                    disabled={cancellingOrderId !== null || modifyingOrderId !== null}
                                     className="px-2 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all"
                                     title="Cancel this pending order"
                                   >
@@ -3339,19 +3378,30 @@ export default function App() {
                                               {sOrder.status}
                                             </span>
                                             {sOrder.status === "PENDING" && (
-                                              <button
-                                                onClick={() => handleCancelOrder(sOrder.id)}
-                                                disabled={cancellingOrderId !== null}
-                                                className="px-1.5 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-0.5 cursor-pointer transition-all"
-                                                title="Cancel this pending order"
-                                              >
-                                                {cancellingOrderId === sOrder.id ? (
-                                                  <RefreshCw className="w-2.5 h-2.5 animate-spin" />
-                                                ) : (
-                                                  <Ban className="w-2.5 h-2.5" />
-                                                )}
-                                                <span>{cancellingOrderId === sOrder.id ? "..." : "Cancel"}</span>
-                                              </button>
+                                              <>
+                                                <button
+                                                  onClick={() => setEditingOrder(sOrder)}
+                                                  disabled={modifyingOrderId !== null || cancellingOrderId !== null}
+                                                  className="px-1.5 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 border border-amber-500/20 text-amber-400 rounded text-[10px] font-bold flex items-center gap-0.5 cursor-pointer transition-all"
+                                                  title="Edit this slave pending order"
+                                                >
+                                                  <Edit3 className="w-2.5 h-2.5" />
+                                                  <span>Edit</span>
+                                                </button>
+                                                <button
+                                                  onClick={() => handleCancelOrder(sOrder.id)}
+                                                  disabled={cancellingOrderId !== null || modifyingOrderId !== null}
+                                                  className="px-1.5 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-0.5 cursor-pointer transition-all"
+                                                  title="Cancel this pending order"
+                                                >
+                                                  {cancellingOrderId === sOrder.id ? (
+                                                    <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                                                  ) : (
+                                                    <Ban className="w-2.5 h-2.5" />
+                                                  )}
+                                                  <span>{cancellingOrderId === sOrder.id ? "..." : "Cancel"}</span>
+                                                </button>
+                                              </>
                                             )}
                                           </div>
                                         </div>
@@ -4060,6 +4110,186 @@ export default function App() {
           onSubmit={handleSubmitOco}
         />
       )}
+
+      {editingOrder && (
+        <EditOrderModal
+          order={editingOrder}
+          quote={quotes[editingOrder.symbol]}
+          onClose={() => setEditingOrder(null)}
+          onConfirm={handleModifyOrder}
+          loading={modifyingOrderId === editingOrder.id}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── EditOrderModal Component ────────────────────────────────────────────────
+function EditOrderModal({
+  order,
+  quote,
+  onClose,
+  onConfirm,
+  loading = false,
+}: {
+  order: TradeOrder;
+  quote?: QuoteData;
+  onClose: () => void;
+  onConfirm: (orderId: string, updates: { price?: number; triggerPrice?: number; quantity?: number; orderType?: string }) => void | Promise<void>;
+  loading?: boolean;
+}) {
+  const [quantity, setQuantity] = useState<number>(order.quantity);
+  const [orderType, setOrderType] = useState<string>(order.orderType || "LIMIT");
+  const [price, setPrice] = useState<number>(order.price || quote?.ltp || 0);
+  const [triggerPrice, setTriggerPrice] = useState<number>(order.triggerPrice || 0);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (quantity <= 0) {
+      setError("Quantity must be greater than 0");
+      return;
+    }
+    if ((orderType === "LIMIT" || orderType === "SL") && price <= 0) {
+      setError("Price must be greater than 0 for Limit/SL orders");
+      return;
+    }
+    if (orderType === "SL" && triggerPrice <= 0) {
+      setError("Trigger price must be greater than 0 for SL orders");
+      return;
+    }
+    setError(null);
+    onConfirm(order.id, {
+      quantity,
+      orderType,
+      price: orderType === "MARKET" ? 0 : price,
+      triggerPrice: orderType === "SL" ? triggerPrice : 0,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 relative">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="flex items-center gap-2">
+            <Edit3 className="w-5 h-5 text-amber-400" />
+            <div>
+              <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                Edit Pending Order
+                <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${order.transactionType === "BUY" ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>
+                  {order.transactionType}
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 font-mono mt-0.5">{order.symbol} [{order.accountName}]</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="p-1 text-slate-400 hover:text-slate-200 rounded-lg cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {quote && (
+          <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between text-xs font-mono">
+            <span className="text-slate-400">Live Price (LTP):</span>
+            <span className="font-bold text-teal-400">₹{quote.ltp.toFixed(2)}</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-medium flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          {/* Order Type */}
+          <div>
+            <label className="block text-slate-400 font-semibold mb-1.5">Order Type</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(["LIMIT", "SL", "MARKET"] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setOrderType(type)}
+                  className={`py-2 rounded-lg font-bold transition-all text-center border cursor-pointer ${
+                    orderType === type
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                      : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Quantity */}
+          <div>
+            <label className="block text-slate-400 font-semibold mb-1.5">Quantity</label>
+            <input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 font-mono font-bold focus:outline-none focus:border-amber-500"
+            />
+          </div>
+
+          {/* Price */}
+          {orderType !== "MARKET" && (
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1.5">Price (₹)</label>
+              <input
+                type="number"
+                step="0.05"
+                min={0}
+                value={price}
+                onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 font-mono font-bold focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          )}
+
+          {/* Trigger Price */}
+          {orderType === "SL" && (
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1.5">Trigger Price (₹)</label>
+              <input
+                type="number"
+                step="0.05"
+                min={0}
+                value={triggerPrice}
+                onChange={(e) => setTriggerPrice(parseFloat(e.target.value) || 0)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 font-mono font-bold focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          )}
+
+          <div className="pt-2 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-semibold transition-all cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              <span>{loading ? "Modifying..." : "Update Order"}</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
