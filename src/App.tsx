@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+﻿import React, { useState, useEffect, useRef, useCallback } from "react";
 import { KotakLiveFeed } from "./kotakWebSocket";
 import {
   Users,
@@ -149,7 +149,7 @@ interface ScripStatusState {
   count?: number;
 }
 
-type LeftTab = "accounts" | "search" | "watchlist" | "positions" | "logs";
+type LeftTab = "accounts" | "search" | "pending" | "watchlist" | "positions" | "logs";
 
 // ─── Helper: format price ────────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -994,6 +994,7 @@ export default function App() {
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+
   const [settings, setSettings] = useState<AppSettings>({
     autoReplicate: true,
     autoRenewSessions: true,
@@ -2278,6 +2279,10 @@ export default function App() {
   // Order log grouping
   // ─────────────────────────────────────────────────────────────────────────
   const masterOrders = orders.filter((o) => o.accountRole === "master");
+  const completedMasterOrders = masterOrders.filter(
+    (o) => o.status === "SUCCESS" || o.status === "CANCELLED" || o.status === "FAILED"
+  );
+  const pendingMasterOrders = masterOrders.filter((o) => o.status === "PENDING");
   const getSlavesForMaster = (mid: string) =>
     orders.filter((o) => o.masterOrderId === mid);
 
@@ -2712,6 +2717,7 @@ export default function App() {
                       [
                         { id: "accounts", label: "Accounts", icon: Users },
                         { id: "search", label: "Search", icon: Search },
+                        { id: "pending", label: "Pending Orders", icon: Clock, badge: pendingMasterOrders.length || undefined },
                         { id: "watchlist", label: "Watchlist", icon: Star, badge: watchlist.length },
                         { id: "positions", label: "Positions & Funds", icon: Activity },
                         { id: "logs", label: "System Logs", icon: Terminal },
@@ -3128,6 +3134,222 @@ export default function App() {
                 </div>
               )}
 
+
+              {/* â”€â”€ PENDING ORDERS TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              {leftTab === "pending" && (
+                <div className="flex flex-col h-full">
+                  <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-amber-400" />
+                      <span className="text-sm font-bold text-slate-100">
+                        Pending Orders
+                      </span>
+                      <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded font-mono">
+                        {pendingMasterOrders.length} orders
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleSyncOrderStatus}
+                        disabled={syncingOrders}
+                        className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 border border-amber-500/20 text-amber-400 rounded-lg text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                        title="Check broker for updated statuses of pending orders"
+                      >
+                        <Activity className={`w-3.5 h-3.5 ${syncingOrders ? "animate-pulse" : ""}`} />
+                        {syncingOrders ? "Syncing..." : "Sync Status"}
+                      </button>
+                      <button
+                        onClick={fetchOrders}
+                        disabled={loadingOrders}
+                        className="p-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 border border-slate-700 text-slate-300 rounded-lg cursor-pointer"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${loadingOrders ? "animate-spin" : ""}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-3 max-h-[460px]">
+                    {loadingOrders ? (
+                      <div className="text-center py-8 text-slate-400 text-xs animate-pulse">
+                        Loading pending orders...
+                      </div>
+                    ) : pendingMasterOrders.length === 0 ? (
+                      <div className="text-center py-12 text-slate-600 text-xs space-y-2">
+                        <Clock className="w-10 h-10 mx-auto text-slate-800" />
+                        <p className="font-semibold text-slate-500">
+                          No pending orders
+                        </p>
+                        <p className="text-[10px]">
+                          Orders waiting for execution will appear here
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {pendingMasterOrders.map((mOrder) => {
+                          const slaves = getSlavesForMaster(mOrder.id);
+                          const isExpanded = !!expandedMasterOrders[mOrder.id];
+
+                          return (
+                            <div
+                              key={mOrder.id}
+                              className="border border-amber-500/20 rounded-xl overflow-hidden bg-slate-900/30"
+                            >
+                              <div className="p-3 bg-slate-900/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div className="flex items-start gap-3">
+                                  <div
+                                    className={`p-2 rounded-lg ${mOrder.transactionType === "BUY"
+                                      ? "bg-emerald-500/10 text-emerald-400"
+                                      : "bg-rose-500/10 text-rose-400"
+                                    }`}
+                                  >
+                                    <span className="text-xs font-black uppercase tracking-wider">
+                                      {mOrder.transactionType}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="text-sm font-bold text-slate-100 font-mono">
+                                        {mOrder.symbol}
+                                      </h4>
+                                      <span className="text-[10px] text-slate-500">
+                                        [{mOrder.instrument} | {mOrder.orderType}]
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
+                                      <span>
+                                        Qty: <strong>{mOrder.quantity}</strong>
+                                      </span>
+                                      <span>
+                                        Price:{" "}
+                                        <strong>
+                                          {mOrder.orderType === "SL"
+                                            ? `â‚¹${mOrder.price} (Trigger: â‚¹${mOrder.triggerPrice})`
+                                            : mOrder.price === 0
+                                              ? "MARKET"
+                                              : `â‚¹${mOrder.price}`}
+                                        </strong>
+                                      </span>
+                                      <span>
+                                        Time:{" "}
+                                        <strong>
+                                          {new Date(mOrder.timestamp).toLocaleTimeString()}
+                                        </strong>
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                                  <span className="px-2 py-0.5 rounded text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
+                                    PENDING
+                                  </span>
+                                  <button
+                                    onClick={() => handleCancelOrder(mOrder.id)}
+                                    disabled={cancellingOrderId !== null}
+                                    className="px-2 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+                                    title="Cancel this pending order"
+                                  >
+                                    {cancellingOrderId === mOrder.id ? (
+                                      <RefreshCw className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Ban className="w-3 h-3" />
+                                    )}
+                                    <span>{cancellingOrderId === mOrder.id ? "Cancelling..." : "Cancel"}</span>
+                                  </button>
+                                  <button
+                                    onClick={() => toggleMasterExpand(mOrder.id)}
+                                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-lg flex items-center gap-1.5 cursor-pointer"
+                                  >
+                                    <span>Copies ({slaves.length})</span>
+                                    {isExpanded ? (
+                                      <ChevronUp className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {isExpanded && (
+                                <div className="border-t border-slate-800/80 bg-slate-950/40 p-3 space-y-2">
+                                  <div className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 px-3 py-1">
+                                    Slave Account Replications
+                                  </div>
+                                  {slaves.length === 0 ? (
+                                    <div className="text-xs text-slate-500 text-center py-2">
+                                      No copies (auto-replicator was off or no active slaves).
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-1.5">
+                                      {slaves.map((sOrder) => (
+                                        <div
+                                          key={sOrder.id}
+                                          className="px-3 py-2 bg-slate-900/30 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                                        >
+                                          <div className="flex items-center gap-3">
+                                            <span className="font-bold text-slate-300">
+                                              {sOrder.accountName}
+                                            </span>
+                                            <span className="text-slate-500">|</span>
+                                            <span>
+                                              Qty:{" "}
+                                              <strong className="text-slate-300">
+                                                {sOrder.quantity}
+                                              </strong>
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            {sOrder.errorMessage && (
+                                              <span
+                                                className="text-rose-400 text-[11px] font-mono mr-2"
+                                                title={sOrder.errorMessage}
+                                              >
+                                                ({sOrder.errorMessage.slice(0, 30)}...)
+                                              </span>
+                                            )}
+                                            <span
+                                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${sOrder.status === "SUCCESS"
+                                                ? "bg-emerald-500/10 text-emerald-400"
+                                                : sOrder.status === "PENDING"
+                                                  ? "bg-amber-500/10 text-amber-400 animate-pulse"
+                                                  : sOrder.status === "CANCELLED"
+                                                    ? "bg-slate-500/10 text-slate-400"
+                                                    : "bg-rose-500/10 text-rose-400"
+                                              }`}
+                                            >
+                                              {sOrder.status}
+                                            </span>
+                                            {sOrder.status === "PENDING" && (
+                                              <button
+                                                onClick={() => handleCancelOrder(sOrder.id)}
+                                                disabled={cancellingOrderId !== null}
+                                                className="px-1.5 py-0.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 border border-rose-500/20 text-rose-400 rounded text-[10px] font-bold flex items-center gap-0.5 cursor-pointer transition-all"
+                                                title="Cancel this pending order"
+                                              >
+                                                {cancellingOrderId === sOrder.id ? (
+                                                  <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                                                ) : (
+                                                  <Ban className="w-2.5 h-2.5" />
+                                                )}
+                                                <span>{cancellingOrderId === sOrder.id ? "..." : "Cancel"}</span>
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* ── WATCHLIST TAB ─────────────────────────────────────────── */}
               {leftTab === "watchlist" && (
                 <div className="flex flex-col h-full">
@@ -3440,7 +3662,7 @@ export default function App() {
                   </div>
                 </div>
               )}
-              {/* ── SYSTEM LOGS TAB ──────────────────────────────────────────── */}
+              {/* â”€â”€ SYSTEM LOGS TAB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               {leftTab === "logs" && (
                 <div className="flex flex-col h-full space-y-4 p-4 font-mono">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
@@ -3534,25 +3756,21 @@ export default function App() {
 
         </div>
 
-        {/* ── ORDER LOGS ───────────────────────────────────────────────────── */}
+        {/* â”€â”€ COMPLETED / CANCELLED ORDERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
           <div className="px-5 py-4 bg-slate-900/50 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Database className="w-5 h-5 text-teal-400" />
               <h2 className="text-base font-bold text-slate-100">
-                Replicated Orders & Copy Logs
+                Completed / Cancelled Orders
               </h2>
+              {completedMasterOrders.length > 0 && (
+                <span className="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded font-mono">
+                  {completedMasterOrders.length} orders
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={handleSyncOrderStatus}
-                disabled={syncingOrders}
-                className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 border border-amber-500/20 text-amber-400 rounded-lg text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-all"
-                title="Check broker for updated statuses of pending orders"
-              >
-                <Activity className={`w-3.5 h-3.5 ${syncingOrders ? "animate-pulse" : ""}`} />
-                {syncingOrders ? "Syncing..." : "Sync Status"}
-              </button>
               <button
                 onClick={handleClearOrders}
                 className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-all"
@@ -3576,13 +3794,13 @@ export default function App() {
               <div className="text-center py-8 text-slate-400 text-xs">
                 Loading order logs...
               </div>
-            ) : masterOrders.length === 0 ? (
+            ) : completedMasterOrders.length === 0 ? (
               <div className="text-center py-10 text-slate-500 text-xs">
-                No orders placed yet. Use the order pad or BUY/SELL from watchlist.
+                No completed or cancelled orders yet.
               </div>
             ) : (
               <div className="space-y-4">
-                {masterOrders.map((mOrder) => {
+                {completedMasterOrders.map((mOrder) => {
                   const slaves = getSlavesForMaster(mOrder.id);
                   const isExpanded = !!expandedMasterOrders[mOrder.id];
                   const hasFailedSlaves = slaves.some((s) => s.status === "FAILED");
