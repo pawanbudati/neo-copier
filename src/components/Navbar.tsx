@@ -55,17 +55,6 @@ export function Navbar({
             <div className="p-1.5 sm:p-2 bg-gradient-to-tr from-teal-500 to-emerald-400 rounded-xl shadow-lg shadow-teal-500/20 text-slate-950">
               <Zap className="w-4 h-4 sm:w-5 sm:h-5 font-black fill-current" />
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-sm sm:text-base font-black tracking-tight text-white font-mono uppercase">
-                  Neo Copier
-                </h1>
-                <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-400 border border-teal-500/20">
-                  v2.0
-                </span>
-              </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-400 hidden xs:block">Kotak Neo Order Replicator</p>
-            </div>
           </div>
 
           {/* Nav Tabs for Desktop (lg screens) */}
