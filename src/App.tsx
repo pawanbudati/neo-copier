@@ -351,12 +351,15 @@ function ScripRow({
 // }
 
 // ─── OCO Bracket Dialog ────────────────────────────────────────────────────────
+// ─── OCO Bracket Dialog ────────────────────────────────────────────────────────
 function OcoBracketDialog({
   position,
+  quote,
   onClose,
   onSubmit,
 }: {
   position: any;
+  quote?: QuoteData;
   onClose: () => void;
   onSubmit: (data: {
     slTriggerPrice: number;
@@ -368,7 +371,7 @@ function OcoBracketDialog({
   const [slTriggerPrice, setSlTriggerPrice] = useState("");
   const [slLimitPrice, setSlLimitPrice] = useState("");
   const [tpPrice, setTpPrice] = useState("");
-  const [quantity, setQuantity] = useState(Math.abs(position.netQty).toString());
+  const [quantity, setQuantity] = useState(Math.abs(position.netQty ?? position.quantity ?? 0).toString());
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -405,49 +408,89 @@ function OcoBracketDialog({
     }
   };
 
-  const side = position.netQty > 0 ? "SELL" : "BUY";
+  const netQty = Number(position.netQty ?? position.quantity ?? 0);
+  const liveLtp = quote?.ltp ?? Number(position.actvLtp || position.ltp || 0);
+
+  let entryPrice = 0;
+  if (netQty > 0) {
+    entryPrice = Number(position.buyAvg || position.buyAvgPrice || position.averagePrice || 0);
+  } else if (netQty < 0) {
+    entryPrice = Number(position.sellAvg || position.buyAvgPrice || position.averagePrice || 0);
+  } else {
+    entryPrice = Number(position.buyAvg || position.sellAvg || position.averagePrice || 0);
+  }
+
+  const qtyNum = Number(quantity) || 0;
+  const parsedTp = Number(tpPrice) || 0;
+  const parsedSl = Number(slLimitPrice || slTriggerPrice) || 0;
+
+  let projTpPnl = 0;
+  let projTpPct = 0;
+  if (parsedTp > 0) {
+    projTpPnl = netQty > 0 ? (qtyNum * (parsedTp - entryPrice)) : (qtyNum * (entryPrice - parsedTp));
+    projTpPct = entryPrice > 0 ? (netQty > 0 ? ((parsedTp - entryPrice) / entryPrice) * 100 : ((entryPrice - parsedTp) / entryPrice) * 100) : 0;
+  }
+
+  let projSlPnl = 0;
+  let projSlPct = 0;
+  if (parsedSl > 0) {
+    projSlPnl = netQty > 0 ? (qtyNum * (parsedSl - entryPrice)) : (qtyNum * (entryPrice - parsedSl));
+    projSlPct = entryPrice > 0 ? (netQty > 0 ? ((parsedSl - entryPrice) / entryPrice) * 100 : ((entryPrice - parsedSl) / entryPrice) * 100) : 0;
+  }
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-      <div className="bg-[#2b2d30] border border-[#393b40] rounded-xl shadow-2xl w-full max-w-md overflow-hidden text-slate-200">
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in font-mono">
+      <div className="bg-[#2b2d30] border border-[#393b40] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden text-slate-200">
         {/* Header */}
-        <div className="px-4 py-3 bg-[#1e1f22] border-b border-[#393b40] flex justify-between items-center">
+        <div className="px-5 py-3.5 bg-[#1e1f22] border-b border-[#393b40] flex justify-between items-center">
           <div className="space-y-0.5">
-            <h3 className="text-sm font-bold text-slate-100 font-mono">{position.symbol}</h3>
-            <p className="text-[10px] text-slate-400">
-              Set Stop Loss & Target ({position.role ? position.role.toUpperCase() : "MASTER"})
+            <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">
+              {position.scripRefKey || position.tradingSymbol || position.symbol}
+            </h3>
+            <p className="text-[10px] text-slate-400 font-sans">
+              Set OCO Bracket — Target & Stop Loss ({position.accountName || position.nickname || "Master"})
             </p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-base font-semibold cursor-pointer">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-lg font-semibold cursor-pointer">
             &times;
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3 text-xs bg-slate-900/30 p-2.5 rounded-lg border border-[#393b40]/30 font-mono">
-            <div>Position Qty: <span className="font-semibold text-slate-100">{position.netQty}</span></div>
-            <div>Current LTP: <span className="font-semibold text-teal-400">₹{(position.ltp || 0).toFixed(2)}</span></div>
-            <div>Bracket Side: <span className={`font-semibold ${side === "BUY" ? "text-emerald-400" : "text-rose-400"}`}>{side}</span></div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {/* Position Details */}
+          <div className="grid grid-cols-3 gap-2 bg-slate-950/70 p-3 rounded-xl border border-slate-800 text-xs">
+            <div>
+              <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Qty</span>
+              <span className="font-bold text-slate-100">{Math.abs(netQty)}</span>
+            </div>
+            <div>
+              <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Buy Executed Avg</span>
+              <span className="font-bold text-slate-200">₹{entryPrice.toFixed(2)}</span>
+            </div>
+            <div>
+              <span className="text-[9px] text-slate-500 uppercase block font-sans font-semibold">Current LTP</span>
+              <span className="font-bold text-teal-400">₹{liveLtp.toFixed(2)}</span>
+            </div>
           </div>
 
           <div className="space-y-3">
             {/* Quantity */}
             <div>
-              <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">Quantity</label>
+              <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase font-sans">Exit Order Quantity</label>
               <input
                 type="number"
                 step="1"
                 required
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
-                className="w-full bg-[#1e1f22] border border-[#393b40] rounded px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-[#3574f0]"
+                className="w-full bg-[#1e1f22] border border-[#393b40] rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
               />
             </div>
 
             {/* Target Price */}
             <div>
-              <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">Target Limit Price (TP)</label>
+              <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase font-sans">Target Limit Price (TP)</label>
               <input
                 type="number"
                 step="0.05"
@@ -455,14 +498,14 @@ function OcoBracketDialog({
                 placeholder="e.g. 140.00"
                 value={tpPrice}
                 onChange={(e) => setTpPrice(e.target.value)}
-                className="w-full bg-[#1e1f22] border border-[#393b40] rounded px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-[#3574f0]"
+                className="w-full bg-[#1e1f22] border border-[#393b40] rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
               />
             </div>
 
             {/* SL Trigger & Limit */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">SL Trigger Price</label>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase font-sans">SL Trigger Price</label>
                 <input
                   type="number"
                   step="0.05"
@@ -470,11 +513,11 @@ function OcoBracketDialog({
                   placeholder="e.g. 110.00"
                   value={slTriggerPrice}
                   onChange={(e) => setSlTriggerPrice(e.target.value)}
-                  className="w-full bg-[#1e1f22] border border-[#393b40] rounded px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-[#3574f0]"
+                  className="w-full bg-[#1e1f22] border border-[#393b40] rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase">SL Limit Price</label>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase font-sans">SL Limit Price</label>
                 <input
                   type="number"
                   step="0.05"
@@ -482,10 +525,56 @@ function OcoBracketDialog({
                   placeholder="e.g. 109.00"
                   value={slLimitPrice}
                   onChange={(e) => setSlLimitPrice(e.target.value)}
-                  className="w-full bg-[#1e1f22] border border-[#393b40] rounded px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-[#3574f0]"
+                  className="w-full bg-[#1e1f22] border border-[#393b40] rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
                 />
               </div>
             </div>
+
+            {/* Projected Profit and Loss Card */}
+            {(parsedTp > 0 || parsedSl > 0) && (
+              <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 space-y-2 font-mono text-xs mt-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-sans border-b border-slate-800/80 pb-1.5 flex items-center justify-between">
+                  <span>Projected P&L Breakdown</span>
+                  <span className="text-[9px] text-slate-500 font-normal">Avg: ₹{entryPrice.toFixed(2)}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Target TP Projection */}
+                  <div className="bg-emerald-950/20 border border-emerald-500/20 p-2.5 rounded-lg space-y-0.5">
+                    <span className="text-[9px] text-emerald-400/80 uppercase font-sans font-bold block">Target Profit (TP)</span>
+                    {parsedTp > 0 ? (
+                      <div>
+                        <span className={`font-bold text-xs ${projTpPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                          {projTpPnl >= 0 ? "+" : ""}₹{projTpPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[10px] text-emerald-400/80 block font-sans font-semibold">
+                          ({projTpPct >= 0 ? "+" : ""}{projTpPct.toFixed(2)}%)
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-slate-500 italic">Set TP Price</span>
+                    )}
+                  </div>
+
+                  {/* Stop Loss SL Projection */}
+                  <div className="bg-rose-950/20 border border-rose-500/20 p-2.5 rounded-lg space-y-0.5">
+                    <span className="text-[9px] text-rose-400/80 uppercase font-sans font-bold block">Max Loss (SL)</span>
+                    {parsedSl > 0 ? (
+                      <div>
+                        <span className={`font-bold text-xs ${projSlPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                          {projSlPnl >= 0 ? "+" : ""}₹{projSlPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[10px] text-rose-400/80 block font-sans font-semibold">
+                          ({projSlPct >= 0 ? "+" : ""}{projSlPct.toFixed(2)}%)
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-slate-500 italic">Set SL Price</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}
@@ -493,16 +582,16 @@ function OcoBracketDialog({
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 bg-[#2b2d30] border border-[#393b40] hover:bg-slate-800 text-slate-300 text-xs font-semibold rounded cursor-pointer transition-all"
+              className="px-4 py-2 bg-[#2b2d30] border border-[#393b40] hover:bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl cursor-pointer transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-3.5 py-1.5 bg-[#3574f0] hover:bg-[#3574f0]/95 text-white disabled:opacity-50 text-xs font-bold rounded cursor-pointer transition-all"
+              className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white disabled:opacity-50 text-xs font-bold rounded-xl cursor-pointer transition-all shadow-md shadow-teal-900/30"
             >
-              {submitting ? "SUBMITTING..." : "SUBMIT BRACKET"}
+              {submitting ? "SUBMITTING..." : "CONFIRM OCO BRACKET"}
             </button>
           </div>
         </form>
@@ -2843,6 +2932,7 @@ export default function App() {
       {selectedOcoPosition && (
         <OcoBracketDialog
           position={selectedOcoPosition}
+          quote={quotes[selectedOcoPosition.scriptToken]}
           onClose={() => setSelectedOcoPosition(null)}
           onSubmit={handleSubmitOco}
         />
