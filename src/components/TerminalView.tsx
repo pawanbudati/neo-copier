@@ -223,7 +223,7 @@ export function TerminalView({
                             <div>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <h4 className="text-xs font-mono font-bold text-slate-100">
-                                  {item.tradingSymbol}
+                                  {item.scripRefKey || item.tradingSymbol}
                                 </h4>
                                 <span className="text-[9px] uppercase px-1 py-0.2 bg-slate-800 text-slate-400 rounded">
                                   {item.exchange}
@@ -331,7 +331,7 @@ export function TerminalView({
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-mono font-bold text-slate-100">
-                                {item.tradingSymbol}
+                                {item.scripRefKey || item.tradingSymbol}
                               </span>
                               <span className="text-[9px] bg-slate-800 px-1.5 py-0.2 text-slate-400 rounded">
                                 {item.exchange}
