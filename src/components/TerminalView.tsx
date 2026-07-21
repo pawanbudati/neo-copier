@@ -743,9 +743,14 @@ export function TerminalView({
                 className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 sm:p-4 space-y-3"
               >
                 <div className="flex items-center justify-between border-b border-slate-800/60 pb-2">
-                  <span className="font-bold text-xs text-slate-200 font-mono">
-                    {accPos.nickname || accPos.accountId}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs text-slate-100 font-mono">
+                      {accPos.accountName || accPos.nickname || accPos.accountId}
+                    </span>
+                    <span className="text-[9px] uppercase px-1.5 py-0.2 bg-slate-800 text-slate-400 rounded font-bold">
+                      {accPos.role}
+                    </span>
+                  </div>
                   <span className="text-[10px] text-slate-400 font-mono">
                     {accPos.positions?.length || 0} Open Position(s)
                   </span>
@@ -754,49 +759,112 @@ export function TerminalView({
                 {accPos.positions?.length === 0 ? (
                   <p className="text-[11px] text-slate-500 py-1">No open positions.</p>
                 ) : (
-                  <div className="space-y-2">
-                    {accPos.positions.map((pos: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="p-2.5 bg-slate-950/60 rounded-lg border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono font-bold text-slate-100">
-                              {pos.tradingSymbol || pos.symbol}
-                            </span>
-                            <span
-                              className={`text-[9px] px-1 py-0.2 rounded font-bold ${
-                                pos.quantity >= 0
-                                  ? "bg-emerald-500/10 text-emerald-400"
-                                  : "bg-rose-500/10 text-rose-400"
-                              }`}
-                            >
-                              {pos.quantity >= 0 ? "LONG" : "SHORT"}
-                            </span>
-                          </div>
-                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                            Qty: {Math.abs(pos.quantity)} | Avg: ₹{pos.buyAvgPrice || pos.averagePrice || 0}
-                          </div>
-                        </div>
+                  <div className="space-y-2.5">
+                    {accPos.positions.map((pos: any, idx: number) => {
+                      const netQty = Number(pos.netQty ?? pos.quantity ?? 0);
+                      const q = quotes[pos.scriptToken];
+                      const liveLtp = q ? q.ltp : Number(pos.actvLtp || 0);
 
-                        <div className="flex items-center gap-2 justify-end pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-800/40">
-                          <button
-                            onClick={() => onOpenOcoDialog(pos)}
-                            className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold rounded cursor-pointer"
-                          >
-                            OCO
-                          </button>
-                          <button
-                            onClick={() => onExitPosition(pos)}
-                            disabled={exitingPositionId === pos.symbol}
-                            className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold rounded cursor-pointer disabled:opacity-50"
-                          >
-                            {exitingPositionId === pos.symbol ? "..." : "Exit"}
-                          </button>
+                      let entryPrice = 0;
+                      if (netQty > 0) {
+                        entryPrice = Number(pos.buyAvg || pos.buyAvgPrice || pos.averagePrice || 0);
+                      } else if (netQty < 0) {
+                        entryPrice = Number(pos.sellAvg || pos.buyAvgPrice || pos.averagePrice || 0);
+                      } else {
+                        entryPrice = Number(pos.buyAvg || pos.sellAvg || 0);
+                      }
+
+                      let pnl = 0;
+                      if (netQty > 0) {
+                        pnl = netQty * (liveLtp - entryPrice);
+                      } else if (netQty < 0) {
+                        pnl = Math.abs(netQty) * (entryPrice - liveLtp);
+                      } else {
+                        const buyQty = Number(pos.buyQty || 0);
+                        const sellQty = Number(pos.sellQty || 0);
+                        pnl = (sellQty * Number(pos.sellAvg || 0)) - (buyQty * Number(pos.buyAvg || 0));
+                      }
+
+                      const isLong = netQty > 0;
+                      const isShort = netQty < 0;
+                      const isClosed = netQty === 0;
+
+                      return (
+                        <div
+                          key={idx}
+                          className="p-3 bg-slate-950/70 rounded-xl border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono font-bold text-slate-100">
+                                {pos.scripRefKey || pos.tradingSymbol || pos.symbol}
+                              </span>
+                              <span
+                                className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                                  isLong
+                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                    : isShort
+                                    ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                    : "bg-slate-800 text-slate-400"
+                                }`}
+                              >
+                                {isLong ? "LONG" : isShort ? "SHORT" : "CLOSED"}
+                              </span>
+                              <span className="text-[9px] bg-slate-800 text-slate-400 px-1 py-0.2 rounded font-mono">
+                                {pos.exchange}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400 font-mono">
+                              <span>Qty: <strong className="text-slate-200">{Math.abs(netQty)}</strong></span>
+                              <span>Buy Avg: <strong className="text-slate-200">₹{fmt(entryPrice)}</strong></span>
+                              <span>LTP: <strong className="text-teal-400">₹{fmt(liveLtp)}</strong></span>
+                              {pos.strikePrice > 0 && (
+                                <span>Strike: <strong className="text-slate-300">₹{pos.strikePrice}</strong></span>
+                              )}
+                              {pos.expiry && (
+                                <span>Expiry: <strong className="text-slate-300">{pos.expiry}</strong></span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/60 font-mono">
+                            <div className="text-right">
+                              <span className="text-[9px] uppercase text-slate-500 font-semibold block tracking-wider">
+                                Live P&L
+                              </span>
+                              <span
+                                className={`text-xs font-bold ${
+                                  pnl >= 0 ? "text-emerald-400" : "text-rose-400"
+                                }`}
+                              >
+                                {pnl >= 0 ? "+" : ""}₹{fmt(pnl)}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              {!isClosed && (
+                                <button
+                                  onClick={() => onOpenOcoDialog(pos)}
+                                  className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold rounded-lg cursor-pointer"
+                                >
+                                  OCO
+                                </button>
+                              )}
+                              {!isClosed && (
+                                <button
+                                  onClick={() => onExitPosition(pos)}
+                                  disabled={exitingPositionId === `${accPos.accountId}_${pos.symbol}`}
+                                  className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold rounded-lg cursor-pointer disabled:opacity-50"
+                                >
+                                  {exitingPositionId === `${accPos.accountId}_${pos.symbol}` ? "..." : "Exit"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

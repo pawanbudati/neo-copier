@@ -1599,15 +1599,23 @@ export default function App() {
     subscribeToTokens(allTokens);
   }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn, authToken, subscribeOnSearch, orderDialog]);
 
-  // Fetch margins and positions when positions tab or terminal screen is loaded
+  // Fetch margins and positions when positions tab or terminal screen is loaded with auto-refresh polling (every 3s)
   useEffect(() => {
-    if (authToken && powerOn && (leftTab === "positions" || mainScreen === "terminal" || orderDialog)) {
-      fetchMargins();
-      if (leftTab === "positions") {
-        fetchPositions();
-        fetchActiveOcos();
-      }
+    if (!authToken || !powerOn) return;
+    if (leftTab !== "positions" && mainScreen !== "terminal" && !orderDialog) return;
+
+    fetchMargins();
+    fetchPositions();
+    if (leftTab === "positions") {
+      fetchActiveOcos();
     }
+
+    const interval = setInterval(() => {
+      fetchPositions();
+      fetchMargins();
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [leftTab, mainScreen, orderDialog, authToken, powerOn]);
 
   // Logs Auto-refresh polling
@@ -2369,6 +2377,8 @@ export default function App() {
         const successMsg = `Trade executed! Master ID: ${d.masterOrder.id}. Copied to ${d.slaveOrders.length} slave(s).`;
         showNotification(successMsg, "success");
         fetchOrders();
+        fetchPositions();
+        fetchMargins();
         return { success: true, message: successMsg };
       } else {
         const errorMsg = d.masterOrder.errorMessage || "Rejected by broker";
