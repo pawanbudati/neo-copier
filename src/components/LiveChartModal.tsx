@@ -37,7 +37,7 @@ export function LiveChartModal({
   const [chartType, setChartType] = useState<"candles" | "area">("candles");
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // In-memory candles store for active session
+  // In-memory candle tracking for real-time WebSocket updates
   const currentCandleRef = useRef<{
     time: number;
     open: number;
@@ -54,9 +54,10 @@ export function LiveChartModal({
   const liveChange = quote?.change ?? 0;
   const liveChangePct = quote?.changePct ?? 0;
 
-  // 1. Initialize Chart Canvas
+  // 1. Initialize Chart Canvas & Fetch Real OHLC History
   useEffect(() => {
     if (!chartContainerRef.current) return;
+    let isMounted = true;
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
@@ -129,35 +130,58 @@ export function LiveChartModal({
     });
     areaSeriesRef.current = areaSeries;
 
-    // Seed baseline historical candles bucketed strictly to timeframe boundary
-    const nowSec = Math.floor(Date.now() / 1000);
-    const tfSec = timeframe === "5m" ? 300 : timeframe === "15m" ? 900 : timeframe === "1h" ? 3600 : 60;
-    const currentBucket = Math.floor(nowSec / tfSec) * tfSec;
-    const seedPrice = liveLtp > 0 ? liveLtp : 100;
+    // Fetch real historical candles from backend API
+    const targetToken = scrip?.scriptToken || position?.scriptToken || scrip?.symbol || "";
 
-    const seeded: CandlestickData<UTCTimestamp>[] = [];
-    let curPx = seedPrice;
-    for (let i = 30; i >= 0; i--) {
-      const t = (currentBucket - i * tfSec) as UTCTimestamp;
-      const variation = (Math.random() - 0.49) * (curPx * 0.002);
-      const open = curPx;
-      const close = curPx + variation;
-      const high = Math.max(open, close) + Math.random() * (curPx * 0.001);
-      const low = Math.min(open, close) - Math.random() * (curPx * 0.001);
-      curPx = close;
-      seeded.push({ time: t, open, high, low, close });
-    }
+    fetch(`/api/scrips/history?token=${encodeURIComponent(targetToken)}&timeframe=${timeframe}`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((historyData: any[]) => {
+        if (!isMounted) return;
 
-    candleSeries.setData(seeded);
+        let formattedData: CandlestickData<UTCTimestamp>[] = [];
 
-    const last = seeded[seeded.length - 1];
-    currentCandleRef.current = {
-      time: Number(last.time),
-      open: last.open,
-      high: last.high,
-      low: last.low,
-      close: last.close,
-    };
+        if (Array.isArray(historyData) && historyData.length > 0) {
+          formattedData = historyData.map((b) => ({
+            time: Number(b.time) as UTCTimestamp,
+            open: Number(b.open),
+            high: Number(b.high),
+            low: Number(b.low),
+            close: Number(b.close),
+          }));
+        } else {
+          // Fallback if no history accumulated yet: initialize with a single clean baseline candle at live price
+          const nowSec = Math.floor(Date.now() / 1000);
+          const tfSec = timeframe === "5m" ? 300 : timeframe === "15m" ? 900 : timeframe === "1h" ? 3600 : 60;
+          const currentBucket = Math.floor(nowSec / tfSec) * tfSec;
+          const seedPrice = liveLtp > 0 ? liveLtp : 100;
+
+          formattedData = [
+            {
+              time: currentBucket as UTCTimestamp,
+              open: seedPrice,
+              high: seedPrice,
+              low: seedPrice,
+              close: seedPrice,
+            },
+          ];
+        }
+
+        candleSeries.setData(formattedData);
+
+        const last = formattedData[formattedData.length - 1];
+        currentCandleRef.current = {
+          time: Number(last.time),
+          open: last.open,
+          high: last.high,
+          low: last.low,
+          close: last.close,
+        };
+
+        chart.timeScale().fitContent();
+      })
+      .catch((err) => {
+        console.error("[LiveChart] Failed to load real OHLC history:", err);
+      });
 
     // 2. Draw Position Overlay Lines if Position exists
     if (position) {
@@ -193,9 +217,6 @@ export function LiveChartModal({
       }
     }
 
-    // Auto-fit content
-    chart.timeScale().fitContent();
-
     // Handle Window Resize
     const handleResize = () => {
       if (chartContainerRef.current && chartRef.current) {
@@ -208,6 +229,7 @@ export function LiveChartModal({
     window.addEventListener("resize", handleResize);
 
     return () => {
+      isMounted = false;
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
@@ -224,7 +246,7 @@ export function LiveChartModal({
     const cur = currentCandleRef.current;
     if (!cur) return;
 
-    // Guard against out-of-order ticks: never pass timestamp earlier than cur.time
+    // Guard against out-of-order ticks
     if (bucketTime < cur.time) return;
 
     if (bucketTime > cur.time) {
@@ -248,7 +270,7 @@ export function LiveChartModal({
         areaSeriesRef.current.update({ time: bucketTime as UTCTimestamp, value: liveLtp });
       }
     } else {
-      // Update existing candle bucket (bucketTime === cur.time)
+      // Update existing candle bucket
       const updatedCandle = {
         time: cur.time as UTCTimestamp,
         open: cur.open,
