@@ -2803,26 +2803,6 @@ export default function App() {
             onToggleSubscribeOnSearch={toggleSubscribeOnSearch}
             onTabChange={(tab) => setLeftTab(tab === "search" ? "search" : "watchlist")}
             quotes={quotes}
-            instrument={instrument}
-            onInstrumentChange={setInstrument}
-            customSymbol={customSymbol}
-            onCustomSymbolChange={setCustomSymbol}
-            optionType={optionType}
-            onOptionTypeChange={setOptionType}
-            strikePrice={strikePrice}
-            onStrikePriceChange={setStrikePrice}
-            expiry={expiry}
-            onExpiryChange={setExpiry}
-            quantity={quantity}
-            onQuantityChange={setQuantity}
-            price={price}
-            onPriceChange={setPrice}
-            orderType={orderType}
-            onOrderTypeChange={setOrderType}
-            transactionType={transactionType}
-            onTransactionTypeChange={setTransactionType}
-            submittingOrder={submittingOrder}
-            onSubmitOrder={handlePlaceOrder}
             onOpenQuickOrder={(scrip: ScripInfo, side: "BUY" | "SELL") => setOrderDialog({ scrip, side })}
             masterAcc={masterAcc}
             slaveAccs={slaveAccs}
