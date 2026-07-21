@@ -354,11 +354,13 @@ function ScripRow({
 // ─── OCO Bracket Dialog ────────────────────────────────────────────────────────
 function OcoBracketDialog({
   position,
+  existingOco,
   quote,
   onClose,
   onSubmit,
 }: {
   position: any;
+  existingOco?: any;
   quote?: QuoteData;
   onClose: () => void;
   onSubmit: (data: {
@@ -368,11 +370,26 @@ function OcoBracketDialog({
     quantity: number;
   }) => Promise<void>;
 }) {
-  const [slTriggerPrice, setSlTriggerPrice] = useState("");
-  const [slLimitPrice, setSlLimitPrice] = useState("");
-  const [tpPrice, setTpPrice] = useState("");
-  const [quantity, setQuantity] = useState(Math.abs(position.netQty ?? position.quantity ?? 0).toString());
+  const initialSlTrig = existingOco?.slTriggerPrice ? String(existingOco.slTriggerPrice) : "";
+  const initialSlLim = existingOco?.slLimitPrice ? String(existingOco.slLimitPrice) : "";
+  const initialTp = existingOco?.tpPrice ? String(existingOco.tpPrice) : "";
+  const initialQty = existingOco?.quantity
+    ? String(existingOco.quantity)
+    : Math.abs(position.netQty ?? position.quantity ?? 0).toString();
+
+  const [slTriggerPrice, setSlTriggerPrice] = useState(initialSlTrig);
+  const [slLimitPrice, setSlLimitPrice] = useState(initialSlLim);
+  const [tpPrice, setTpPrice] = useState(initialTp);
+  const [quantity, setQuantity] = useState(initialQty);
   const [submitting, setSubmitting] = useState(false);
+
+  const isExistingOco = Boolean(existingOco);
+  const hasChanged = !isExistingOco || (
+    slTriggerPrice.trim() !== initialSlTrig.trim() ||
+    slLimitPrice.trim() !== initialSlLim.trim() ||
+    tpPrice.trim() !== initialTp.trim() ||
+    quantity.trim() !== initialQty.trim()
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -442,9 +459,16 @@ function OcoBracketDialog({
         {/* Header */}
         <div className="px-5 py-3.5 bg-[#1e1f22] border-b border-[#393b40] flex justify-between items-center">
           <div className="space-y-0.5">
-            <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">
-              {position.scripRefKey || position.tradingSymbol || position.symbol}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-100 uppercase tracking-wide">
+                {position.scripRefKey || position.tradingSymbol || position.symbol}
+              </h3>
+              {isExistingOco && (
+                <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.2 rounded font-mono font-bold uppercase">
+                  Active Bracket
+                </span>
+              )}
+            </div>
             <p className="text-[10px] text-slate-400 font-sans">
               Set OCO Bracket — Target & Stop Loss ({position.accountName || position.nickname || "Master"})
             </p>
@@ -592,10 +616,18 @@ function OcoBracketDialog({
             </button>
             <button
               type="submit"
-              disabled={submitting}
-              className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white disabled:opacity-50 text-xs font-bold rounded-xl cursor-pointer transition-all shadow-md shadow-teal-900/30"
+              disabled={submitting || !hasChanged}
+              className={`px-4 py-2 rounded-xl font-bold text-xs transition-all shadow-md ${
+                !hasChanged
+                  ? "bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700"
+                  : "bg-teal-600 hover:bg-teal-500 text-white cursor-pointer shadow-teal-900/30"
+              }`}
             >
-              {submitting ? "SUBMITTING..." : "CONFIRM OCO BRACKET"}
+              {submitting
+                ? "SUBMITTING..."
+                : isExistingOco
+                ? (hasChanged ? "UPDATE OCO BRACKET" : "NO CHANGES DETECTED")
+                : "CONFIRM OCO BRACKET"}
             </button>
           </div>
         </form>
@@ -2939,6 +2971,11 @@ export default function App() {
       {selectedOcoPosition && (
         <OcoBracketDialog
           position={selectedOcoPosition}
+          existingOco={activeOcos.find((o: any) =>
+            (o.accountId === selectedOcoPosition.accountId || o.accountName === selectedOcoPosition.accountName) &&
+            (o.symbol === selectedOcoPosition.symbol || o.tradingSymbol === selectedOcoPosition.symbol) &&
+            (o.status === "PENDING" || !o.status)
+          )}
           quote={quotes[selectedOcoPosition.scriptToken]}
           onClose={() => setSelectedOcoPosition(null)}
           onSubmit={handleSubmitOco}
