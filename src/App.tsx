@@ -376,25 +376,23 @@ function OcoBracketDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const slTrig = parseFloat(slTriggerPrice);
-    const slLim = parseFloat(slLimitPrice);
-    const tp = parseFloat(tpPrice);
-    const qty = parseInt(quantity);
+    const slTrig = parseFloat(slTriggerPrice) || 0;
+    const slLim = parseFloat(slLimitPrice) || 0;
+    const tp = parseFloat(tpPrice) || 0;
+    const qty = parseInt(quantity) || 0;
 
-    if (isNaN(slTrig) || slTrig <= 0) {
-      alert("Please enter a valid SL Trigger Price");
-      return;
-    }
-    if (isNaN(slLim) || slLim <= 0) {
-      alert("Please enter a valid SL Limit Price");
-      return;
-    }
-    if (isNaN(tp) || tp <= 0) {
-      alert("Please enter a valid Target Price");
-      return;
-    }
     if (isNaN(qty) || qty <= 0) {
       alert("Please enter a valid Quantity");
+      return;
+    }
+
+    if (tp <= 0 && slTrig <= 0) {
+      alert("Please enter at least a Target Limit Price or Stop Loss Trigger Price");
+      return;
+    }
+
+    if (slLim > 0 && slTrig <= 0) {
+      alert("Please enter SL Trigger Price if SL Limit Price is specified");
       return;
     }
 
@@ -490,12 +488,14 @@ function OcoBracketDialog({
 
             {/* Target Price */}
             <div>
-              <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase font-sans">Target Limit Price (TP)</label>
+              <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase font-sans flex justify-between">
+                <span>Target Limit Price (TP)</span>
+                <span className="text-slate-500 font-normal">Optional</span>
+              </label>
               <input
                 type="number"
                 step="0.05"
-                required
-                placeholder="e.g. 140.00"
+                placeholder="e.g. 140.00 (Optional)"
                 value={tpPrice}
                 onChange={(e) => setTpPrice(e.target.value)}
                 className="w-full bg-[#1e1f22] border border-[#393b40] rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
@@ -505,24 +505,28 @@ function OcoBracketDialog({
             {/* SL Trigger & Limit */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase font-sans">SL Trigger Price</label>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase font-sans flex justify-between">
+                  <span>SL Trigger Price</span>
+                  <span className="text-slate-500 font-normal">Optional</span>
+                </label>
                 <input
                   type="number"
                   step="0.05"
-                  required
-                  placeholder="e.g. 110.00"
+                  placeholder="e.g. 110.00 (Optional)"
                   value={slTriggerPrice}
                   onChange={(e) => setSlTriggerPrice(e.target.value)}
                   className="w-full bg-[#1e1f22] border border-[#393b40] rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase font-sans">SL Limit Price</label>
+                <label className="text-[10px] font-bold text-slate-400 block mb-1 uppercase font-sans flex justify-between">
+                  <span>SL Limit Price</span>
+                  <span className="text-teal-400/80 font-normal">Leave empty for SL-M</span>
+                </label>
                 <input
                   type="number"
                   step="0.05"
-                  required
-                  placeholder="e.g. 109.00"
+                  placeholder="Leave empty for SL Market"
                   value={slLimitPrice}
                   onChange={(e) => setSlLimitPrice(e.target.value)}
                   className="w-full bg-[#1e1f22] border border-[#393b40] rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-teal-500"
