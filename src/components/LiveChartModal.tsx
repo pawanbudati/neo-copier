@@ -66,6 +66,18 @@ export function LiveChartModal({
         textColor: "#94a3b8",
         fontFamily: "'JetBrains Mono', monospace, sans-serif",
       },
+      localization: {
+        dateFormat: "yyyy-MM-dd",
+        timeFormatter: (timestamp: number) => {
+          const date = new Date(timestamp * 1000);
+          return date.toLocaleTimeString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          });
+        },
+      },
       grid: {
         vertLines: { color: "#1e293b50" },
         horzLines: { color: "#1e293b50" },
@@ -82,6 +94,15 @@ export function LiveChartModal({
         borderColor: "#334155",
         timeVisible: true,
         secondsVisible: false,
+        tickMarkFormatter: (timestamp: number) => {
+          const date = new Date(timestamp * 1000);
+          return date.toLocaleTimeString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          });
+        },
       },
     });
 
