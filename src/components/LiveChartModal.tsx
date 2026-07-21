@@ -6,7 +6,7 @@ import {
   CandlestickSeries,
   AreaSeries,
   CandlestickData,
-  Time,
+  UTCTimestamp,
   ColorType,
   LineStyle,
 } from "lightweight-charts";
@@ -38,7 +38,6 @@ export function LiveChartModal({
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // In-memory candles store for active session
-  const candlesRef = useRef<CandlestickData[]>([]);
   const currentCandleRef = useRef<{
     time: number;
     open: number;
@@ -109,15 +108,16 @@ export function LiveChartModal({
     });
     areaSeriesRef.current = areaSeries;
 
-    // Seed baseline historical candles if empty
+    // Seed baseline historical candles bucketed strictly to timeframe boundary
     const nowSec = Math.floor(Date.now() / 1000);
     const tfSec = timeframe === "5m" ? 300 : timeframe === "15m" ? 900 : timeframe === "1h" ? 3600 : 60;
+    const currentBucket = Math.floor(nowSec / tfSec) * tfSec;
     const seedPrice = liveLtp > 0 ? liveLtp : 100;
 
-    const seeded: CandlestickData[] = [];
+    const seeded: CandlestickData<UTCTimestamp>[] = [];
     let curPx = seedPrice;
     for (let i = 30; i >= 0; i--) {
-      const t = (nowSec - i * tfSec) as Time;
+      const t = (currentBucket - i * tfSec) as UTCTimestamp;
       const variation = (Math.random() - 0.49) * (curPx * 0.002);
       const open = curPx;
       const close = curPx + variation;
@@ -127,7 +127,6 @@ export function LiveChartModal({
       seeded.push({ time: t, open, high, low, close });
     }
 
-    candlesRef.current = seeded;
     candleSeries.setData(seeded);
 
     const last = seeded[seeded.length - 1];
@@ -202,11 +201,15 @@ export function LiveChartModal({
     const bucketTime = Math.floor(nowSec / tfSec) * tfSec;
 
     const cur = currentCandleRef.current;
+    if (!cur) return;
 
-    if (!cur || cur.time !== bucketTime) {
+    // Guard against out-of-order ticks: never pass timestamp earlier than cur.time
+    if (bucketTime < cur.time) return;
+
+    if (bucketTime > cur.time) {
       // Create new candle bucket
       const newCandle = {
-        time: bucketTime as Time,
+        time: bucketTime as UTCTimestamp,
         open: liveLtp,
         high: liveLtp,
         low: liveLtp,
@@ -221,12 +224,12 @@ export function LiveChartModal({
       };
       candleSeriesRef.current.update(newCandle);
       if (areaSeriesRef.current) {
-        areaSeriesRef.current.update({ time: bucketTime as Time, value: liveLtp });
+        areaSeriesRef.current.update({ time: bucketTime as UTCTimestamp, value: liveLtp });
       }
     } else {
-      // Update existing candle bucket
+      // Update existing candle bucket (bucketTime === cur.time)
       const updatedCandle = {
-        time: cur.time as Time,
+        time: cur.time as UTCTimestamp,
         open: cur.open,
         high: Math.max(cur.high, liveLtp),
         low: Math.min(cur.low, liveLtp),
@@ -242,7 +245,7 @@ export function LiveChartModal({
 
       candleSeriesRef.current.update(updatedCandle);
       if (areaSeriesRef.current) {
-        areaSeriesRef.current.update({ time: cur.time as Time, value: liveLtp });
+        areaSeriesRef.current.update({ time: cur.time as UTCTimestamp, value: liveLtp });
       }
     }
   }, [liveLtp, timeframe]);
