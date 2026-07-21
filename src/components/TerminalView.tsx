@@ -8,6 +8,7 @@ import {
   Database,
   Wifi,
   WifiOff,
+  Wallet,
 } from "lucide-react";
 import {
   AccountSummary,
@@ -130,6 +131,47 @@ export function TerminalView({
   onOpenOcoDialog,
 }: TerminalViewProps) {
   const [terminalTab, setTerminalTab] = useState<"watchlist" | "search">("watchlist");
+  const [padMarginData, setPadMarginData] = useState<{
+    master?: { requiredMargin: number; availableMargin: number; sufficient: boolean };
+    slaves?: Array<{ accountId: string; quantity: number; requiredMargin: number; availableMargin: number; sufficient: boolean }>;
+  } | null>(null);
+  const [padCalculating, setPadCalculating] = useState(false);
+
+  React.useEffect(() => {
+    let active = true;
+    setPadCalculating(true);
+    const timer = setTimeout(async () => {
+      try {
+        const pVal = Number(price || 0);
+        const res = await fetch("/api/orders/margin-required", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instrument: instrument === "CUSTOM" ? customSymbol : instrument,
+            exchange: instrument === "CRUDEOIL" ? "MCX" : "NFO",
+            segment: optionType,
+            transactionType: transactionType,
+            orderType: orderType,
+            price: pVal,
+            quantity: Number(quantity || 1),
+            product: "MIS",
+          }),
+        });
+        if (res.ok && active) {
+          const data = await res.json();
+          setPadMarginData(data);
+        }
+      } catch (_) {
+      } finally {
+        if (active) setPadCalculating(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [instrument, customSymbol, optionType, strikePrice, expiry, transactionType, orderType, price, quantity]);
 
   const fmt = (n: number) =>
     n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -541,6 +583,99 @@ export function TerminalView({
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 font-mono font-bold focus:outline-none focus:border-teal-500"
               />
             </div>
+
+            {/* Funds & Margins Summary */}
+            {(() => {
+              const termPriceNum = Number(price || 0);
+              const termQtyNum = Number(quantity || 0);
+
+              const masterReq = padMarginData?.master?.requiredMargin ?? (termQtyNum * termPriceNum);
+              const termMasterMargin = margins.find((m) => m.accountId === masterAcc?.id || m.role === "master");
+              const masterAvail = padMarginData?.master?.availableMargin ?? (termMasterMargin ? Number(termMasterMargin.availableMargin || 0) : 0);
+              const termMasterSuff = padMarginData?.master?.sufficient ?? (masterAvail >= masterReq);
+
+              return (
+                <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-2.5 font-mono">
+                  <div className="flex items-center justify-between text-xs border-b border-slate-800/80 pb-2">
+                    <div className="flex items-center gap-1.5 font-bold text-slate-300">
+                      <Wallet className="w-3.5 h-3.5 text-teal-400" />
+                      <span>Broker Live Margin Check</span>
+                    </div>
+                    {padCalculating ? (
+                      <span className="text-[10px] text-teal-400 animate-pulse flex items-center gap-1">
+                        <RefreshCw className="w-3 h-3 animate-spin" /> Checking API...
+                      </span>
+                    ) : (
+                      termPriceNum > 0 && (
+                        <span className="text-[10px] text-slate-400">
+                          Price: ₹{fmt(termPriceNum)}
+                        </span>
+                      )
+                    )}
+                  </div>
+
+                  {/* Master Funds */}
+                  <div className="bg-slate-900/60 border border-slate-800 p-2 rounded-lg space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-200">
+                        Master ({masterAcc?.nickname || "Master"}):
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
+                          termMasterSuff
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                        }`}
+                      >
+                        {termMasterSuff ? "Sufficient" : "Insufficient"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>Broker Req: <strong className="text-slate-200">₹{fmt(masterReq)}</strong> ({termQtyNum} qty)</span>
+                      <span>Avail: <strong className="text-slate-200">₹{fmt(masterAvail)}</strong></span>
+                    </div>
+                  </div>
+
+                  {/* Slave Funds */}
+                  {slaveAccs.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block tracking-wider">
+                        Copying Slaves Margin Status
+                      </span>
+                      {slaveAccs.map((s) => {
+                        const sApiData = padMarginData?.slaves?.find((sl) => sl.accountId === s.id);
+                        const sQty = sApiData?.quantity ?? Math.max(1, Math.round(termQtyNum * (s.multiplier || 1)));
+                        const sReq = sApiData?.requiredMargin ?? (sQty * termPriceNum);
+                        const sMargin = margins.find((m) => m.accountId === s.id || m.accountName === s.nickname);
+                        const sAvail = sApiData?.availableMargin ?? (sMargin ? Number(sMargin.availableMargin || 0) : 0);
+                        const sSuff = sApiData?.sufficient ?? (sAvail >= sReq);
+
+                        return (
+                          <div key={s.id} className="bg-slate-900/40 border border-slate-800/60 p-2 rounded-lg text-[11px]">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-slate-300 font-semibold">{s.nickname} ({s.multiplier}x — {sQty} qty):</span>
+                              <span
+                                className={`text-[9px] font-bold px-1 py-0.2 rounded ${
+                                  sSuff
+                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                    : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                }`}
+                              >
+                                {sSuff ? "Sufficient" : "Shortfall"}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-slate-400">
+                              <span>Broker Req: <strong className="text-slate-200">₹{fmt(sReq)}</strong></span>
+                              <span>Avail: <strong className="text-slate-200">₹{fmt(sAvail)}</strong></span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Submit Action Button */}
             <button

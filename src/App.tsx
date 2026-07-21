@@ -46,6 +46,7 @@ import {
   Power,
   Palette,
   Edit3,
+  Wallet,
 } from "lucide-react";
 
 // Global fetch interceptor to append Auth headers and handle 401 redirects
@@ -519,6 +520,8 @@ function QuickOrderDialog({
   onClose,
   onConfirm,
   slaveAccs,
+  masterAcc,
+  margins = [],
 }: {
   scrip: ScripInfo;
   side: "BUY" | "SELL";
@@ -531,6 +534,8 @@ function QuickOrderDialog({
     triggerPrice: number
   ) => Promise<{ success: boolean; message?: string; error?: string }>;
   slaveAccs: AccountSummary[];
+  masterAcc?: AccountSummary;
+  margins?: any[];
 }) {
   const [qty, setQty] = useState(String(scrip.lotSize));
   const [orderType, setOrderType] = useState<"MARKET" | "LIMIT" | "SL">("MARKET");
@@ -543,6 +548,50 @@ function QuickOrderDialog({
 
   const [dialogStatus, setDialogStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [feedbackText, setFeedbackText] = useState("");
+
+  const [marginData, setMarginData] = useState<{
+    unitPrice?: number;
+    master?: { accountId: string; accountName: string; requiredMargin: number; availableMargin: number; sufficient: boolean };
+    slaves?: Array<{ accountId: string; accountName: string; multiplier: number; quantity: number; requiredMargin: number; availableMargin: number; sufficient: boolean }>;
+  } | null>(null);
+  const [calculatingMargin, setCalculatingMargin] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setCalculatingMargin(true);
+    const timer = setTimeout(async () => {
+      try {
+        const priceVal = orderType === "MARKET" ? (quote?.ltp || 0) : Number(limitPrice || 0);
+        const res = await fetch("/api/orders/margin-required", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scriptToken: scrip.scriptToken,
+            exchange: scrip.exchange,
+            segment: scrip.segment,
+            transactionType: side,
+            orderType: orderType,
+            price: priceVal,
+            triggerPrice: Number(triggerPrice || 0),
+            quantity: Number(qty || 1),
+            product: "MIS",
+          }),
+        });
+        if (res.ok && active) {
+          const data = await res.json();
+          setMarginData(data);
+        }
+      } catch (_) {
+      } finally {
+        if (active) setCalculatingMargin(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [scrip, side, quote, orderType, limitPrice, triggerPrice, qty]);
 
   const isBuy = side === "BUY";
 
@@ -651,7 +700,7 @@ function QuickOrderDialog({
                 {side} Order
               </p>
               <p className="text-sm font-bold text-slate-100 font-mono">
-                {scrip.tradingSymbol}
+                {scrip.scripRefKey || scrip.tradingSymbol}
               </p>
             </div>
           </div>
@@ -757,25 +806,100 @@ function QuickOrderDialog({
             </div>
           )}
 
-          {/* Slave preview */}
-          {slaveAccs.length > 0 && (
-            <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-3 space-y-1.5">
-              <span className="text-[10px] uppercase font-bold text-slate-500 block tracking-wider">
-                Slave Replications
-              </span>
-              {slaveAccs.map((s) => (
-                <div
-                  key={s.id}
-                  className="flex justify-between text-xs text-slate-400"
-                >
-                  <span>{s.nickname} ({s.multiplier}x):</span>
-                  <span className="font-mono text-slate-300">
-                    {Math.max(1, Math.round(Number(qty) * s.multiplier))} qty
-                  </span>
+          {/* Broker Margin & Funds Breakdown (Live Broker API Call) */}
+          {(() => {
+            const unitPrice = orderType === "MARKET" ? (quote?.ltp || 0) : Number(limitPrice || 0);
+            const masterQtyNum = Number(qty || 0);
+
+            const masterReq = marginData?.master?.requiredMargin ?? (masterQtyNum * unitPrice);
+            const masterAvail = marginData?.master?.availableMargin ?? (margins.find((m) => m.accountId === masterAcc?.id || m.role === "master")?.availableMargin || 0);
+            const masterSuff = marginData?.master?.sufficient ?? (masterAvail >= masterReq);
+
+            const fmtVal = (val: number) =>
+              val.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            return (
+              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3.5 space-y-3 font-mono">
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+                    <Wallet className="w-3.5 h-3.5 text-teal-400" />
+                    <span>Broker Live Margin API Check</span>
+                  </div>
+                  {calculatingMargin ? (
+                    <span className="text-[10px] text-teal-400 animate-pulse flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3 animate-spin" /> Fetching broker API...
+                    </span>
+                  ) : (
+                    unitPrice > 0 && (
+                      <span className="text-[10px] text-slate-400">
+                        Price: ₹{fmtVal(unitPrice)}
+                      </span>
+                    )
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+
+                {/* Master Account Funds */}
+                <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-lg space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-200">
+                      Master ({masterAcc?.nickname || "Master Account"}):
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        masterSuff
+                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                          : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                      }`}
+                    >
+                      {masterSuff ? "Sufficient Funds" : "Insufficient Margin"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Broker Req: <strong className="text-slate-200">₹{fmtVal(masterReq)}</strong> ({masterQtyNum} qty)</span>
+                    <span>Avail: <strong className="text-slate-200">₹{fmtVal(masterAvail)}</strong></span>
+                  </div>
+                </div>
+
+                {/* Slave Accounts Funds */}
+                {slaveAccs.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 block tracking-wider">
+                      Slave Copying Broker Margin Status
+                    </span>
+                    {slaveAccs.map((s) => {
+                      const slaveApiData = marginData?.slaves?.find((sl) => sl.accountId === s.id);
+                      const slaveQty = slaveApiData?.quantity ?? Math.max(1, Math.round(masterQtyNum * (s.multiplier || 1)));
+                      const slaveReq = slaveApiData?.requiredMargin ?? (slaveQty * unitPrice);
+                      const sMargin = margins.find((m) => m.accountId === s.id || m.accountName === s.nickname);
+                      const slaveAvail = slaveApiData?.availableMargin ?? (sMargin ? Number(sMargin.availableMargin || 0) : 0);
+                      const sSuff = slaveApiData?.sufficient ?? (slaveAvail >= slaveReq);
+
+                      return (
+                        <div key={s.id} className="bg-slate-900/50 border border-slate-800/60 p-2 rounded-lg text-[11px]">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-slate-300 font-semibold">{s.nickname} ({s.multiplier}x — {slaveQty} qty):</span>
+                            <span
+                              className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                                sSuff
+                                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                  : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                              }`}
+                            >
+                              {sSuff ? "Sufficient" : "Margin Shortfall"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-slate-400">
+                            <span>Broker Req: <strong className="text-slate-200">₹{fmtVal(slaveReq)}</strong></span>
+                            <span>Avail: <strong className="text-slate-200">₹{fmtVal(slaveAvail)}</strong></span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Footer */}
@@ -1475,14 +1599,16 @@ export default function App() {
     subscribeToTokens(allTokens);
   }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn, authToken, subscribeOnSearch, orderDialog]);
 
-  // Fetch margins and positions when positions tab is loaded
+  // Fetch margins and positions when positions tab or terminal screen is loaded
   useEffect(() => {
-    if (leftTab === "positions") {
+    if (authToken && powerOn && (leftTab === "positions" || mainScreen === "terminal" || orderDialog)) {
       fetchMargins();
-      fetchPositions();
-      fetchActiveOcos();
+      if (leftTab === "positions") {
+        fetchPositions();
+        fetchActiveOcos();
+      }
     }
-  }, [leftTab]);
+  }, [leftTab, mainScreen, orderDialog, authToken, powerOn]);
 
   // Logs Auto-refresh polling
   useEffect(() => {
@@ -2708,6 +2834,8 @@ export default function App() {
           onClose={() => setOrderDialog(null)}
           onConfirm={handleQuickOrderConfirm}
           slaveAccs={slaveAccs}
+          masterAcc={masterAcc}
+          margins={margins}
         />
       )}
 
