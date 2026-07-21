@@ -1390,6 +1390,28 @@ export default function App() {
     }
   }, [showHelp]);
 
+  // Intercept all API fetch calls for 401 Unauthorized -> auto logout to login screen
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        const currentToken = localStorage.getItem("admin-token");
+        if (currentToken) {
+          console.warn("[Auth] Received 401 Unauthorized from API. Redirecting to login...");
+          localStorage.removeItem("admin-token");
+          setAuthToken(null);
+          showNotification("Session expired. Please log in again.", "error");
+        }
+      }
+      return response;
+    };
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
+
   // ─────────────────────────────────────────────────────────────────────────
   // Clock
   // ─────────────────────────────────────────────────────────────────────────
