@@ -386,7 +386,13 @@ export function TerminalView({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {positions.map((accPos) => (
+            {[...positions]
+              .sort((a: any, b: any) => {
+                const aMaster = (a.role || "").toLowerCase() === "master" ? 0 : 1;
+                const bMaster = (b.role || "").toLowerCase() === "master" ? 0 : 1;
+                return aMaster - bMaster;
+              })
+              .map((accPos) => (
               <div
                 key={accPos.accountId}
                 className="bg-slate-900/60 border border-slate-800 rounded-xl p-3.5 sm:p-4 space-y-3"
