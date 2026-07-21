@@ -2582,6 +2582,9 @@ export default function App() {
             isStarred={isStarred}
             scripStatus={scripStatus}
             onOpenScripModal={() => setIsScripModalOpen(true)}
+            subscribeOnSearch={subscribeOnSearch}
+            onToggleSubscribeOnSearch={toggleSubscribeOnSearch}
+            onTabChange={(tab) => setLeftTab(tab === "search" ? "search" : "watchlist")}
             quotes={quotes}
             instrument={instrument}
             onInstrumentChange={setInstrument}

@@ -6,6 +6,8 @@ import {
   Zap,
   Activity,
   Database,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import {
   AccountSummary,
@@ -27,6 +29,11 @@ interface TerminalViewProps {
   isStarred: (scriptToken: string) => boolean;
   scripStatus: ScripStatusState;
   onOpenScripModal: () => void;
+
+  // Streaming
+  subscribeOnSearch: boolean;
+  onToggleSubscribeOnSearch: () => void;
+  onTabChange?: (tab: "watchlist" | "search") => void;
 
   // Quotes
   quotes: Record<string, QuoteData>;
@@ -83,6 +90,9 @@ export function TerminalView({
   isStarred,
   scripStatus,
   onOpenScripModal,
+  subscribeOnSearch,
+  onToggleSubscribeOnSearch,
+  onTabChange,
   quotes,
   instrument,
   onInstrumentChange,
@@ -134,7 +144,7 @@ export function TerminalView({
           <div className="p-2.5 sm:p-3 border-b border-slate-800 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 bg-slate-950/60">
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button
-                onClick={() => setTerminalTab("watchlist")}
+                onClick={() => { setTerminalTab("watchlist"); onTabChange?.("watchlist"); }}
                 className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   terminalTab === "watchlist"
                     ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
@@ -146,7 +156,7 @@ export function TerminalView({
               </button>
 
               <button
-                onClick={() => setTerminalTab("search")}
+                onClick={() => { setTerminalTab("search"); onTabChange?.("search"); }}
                 className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                   terminalTab === "search"
                     ? "bg-teal-500/10 text-teal-400 border border-teal-500/30"
@@ -156,6 +166,26 @@ export function TerminalView({
                 <Search className="w-3.5 h-3.5" />
                 <span>Search</span>
               </button>
+
+              {/* Stream toggle - only visible when search tab is active */}
+              {terminalTab === "search" && (
+                <button
+                  onClick={onToggleSubscribeOnSearch}
+                  className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    subscribeOnSearch
+                      ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
+                      : "bg-slate-800/60 text-slate-500 border border-slate-700/50 hover:text-slate-300"
+                  }`}
+                  title={subscribeOnSearch ? "Live streaming ON for search results" : "Live streaming OFF for search results"}
+                >
+                  {subscribeOnSearch ? (
+                    <Wifi className="w-3.5 h-3.5" />
+                  ) : (
+                    <WifiOff className="w-3.5 h-3.5" />
+                  )}
+                  <span className="hidden sm:inline">Stream</span>
+                </button>
+              )}
             </div>
 
             <button
