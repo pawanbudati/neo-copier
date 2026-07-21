@@ -1599,20 +1599,20 @@ export default function App() {
     subscribeToTokens(allTokens);
   }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn, authToken, subscribeOnSearch, orderDialog]);
 
-  // Fetch margins and positions when positions tab or terminal screen is loaded with auto-refresh polling (every 3s)
+  // Fetch margins and positions when positions tab or terminal screen is loaded with smooth background polling (every 3s)
   useEffect(() => {
     if (!authToken || !powerOn) return;
     if (leftTab !== "positions" && mainScreen !== "terminal" && !orderDialog) return;
 
-    fetchMargins();
-    fetchPositions();
+    fetchMargins(false);
+    fetchPositions(false);
     if (leftTab === "positions") {
       fetchActiveOcos();
     }
 
     const interval = setInterval(() => {
-      fetchPositions();
-      fetchMargins();
+      fetchPositions(false);
+      fetchMargins(false);
     }, 3000);
 
     return () => clearInterval(interval);
@@ -1859,35 +1859,29 @@ export default function App() {
     }
   };
 
-  const fetchMargins = async () => {
-    setLoadingMargins(true);
+  const fetchMargins = async (showLoading = false) => {
+    if (showLoading) setLoadingMargins(true);
     try {
       const r = await fetch("/api/accounts/margins");
       if (r.ok) {
         setMargins(await r.json());
-      } else {
-        showNotification("Failed to load margin balances", "error");
       }
     } catch (_) {
-      showNotification("Error loading margins", "error");
     } finally {
-      setLoadingMargins(false);
+      if (showLoading) setLoadingMargins(false);
     }
   };
 
-  const fetchPositions = async () => {
-    setLoadingPositions(true);
+  const fetchPositions = async (showLoading = false) => {
+    if (showLoading) setLoadingPositions(true);
     try {
       const r = await fetch("/api/accounts/positions");
       if (r.ok) {
         setPositions(await r.json());
-      } else {
-        showNotification("Failed to load positions", "error");
       }
     } catch (_) {
-      showNotification("Error loading positions", "error");
     } finally {
-      setLoadingPositions(false);
+      if (showLoading) setLoadingPositions(false);
     }
   };
 
@@ -2747,10 +2741,10 @@ export default function App() {
             slaveAccs={slaveAccs}
             margins={margins}
             loadingMargins={loadingMargins}
-            onFetchMargins={fetchMargins}
+            onFetchMargins={() => fetchMargins(true)}
             positions={positions}
             loadingPositions={loadingPositions}
-            onFetchPositions={fetchPositions}
+            onFetchPositions={() => fetchPositions(true)}
             exitingAll={exitingAll}
             onExitAllPositions={handleExitAllPositions}
             exitingPositionId={exitingPositionId}
