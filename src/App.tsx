@@ -3,6 +3,7 @@ import { TerminalView } from "./components/TerminalView";
 import { OrdersView } from "./components/OrdersView";
 import { AccountsView } from "./components/AccountsView";
 import { LogsView } from "./components/LogsView";
+import { LiveChartModal } from "./components/LiveChartModal";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { KotakLiveFeed } from "./kotakWebSocket";
 import {
@@ -1339,6 +1340,7 @@ export default function App() {
   const [exitingPositionId, setExitingPositionId] = useState<string | null>(null);
   const [activeOcos, setActiveOcos] = useState<any[]>([]);
   const [selectedOcoPosition, setSelectedOcoPosition] = useState<any | null>(null);
+  const [selectedChartScrip, setSelectedChartScrip] = useState<any | null>(null);
 
   // ── NEW: Search ───────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -2862,6 +2864,7 @@ export default function App() {
             onTabChange={(tab) => setLeftTab(tab === "search" ? "search" : "watchlist")}
             quotes={quotes}
             onOpenQuickOrder={(scrip: ScripInfo, side: "BUY" | "SELL") => setOrderDialog({ scrip, side })}
+            onOpenChart={(scrip: any) => setSelectedChartScrip(scrip)}
             masterAcc={masterAcc}
             slaveAccs={slaveAccs}
             margins={margins}
@@ -2989,6 +2992,19 @@ export default function App() {
           onClose={() => setEditingOrder(null)}
           onConfirm={handleModifyOrder}
           loading={modifyingOrderId === editingOrder.id}
+        />
+      )}
+
+      {selectedChartScrip && (
+        <LiveChartModal
+          scrip={selectedChartScrip}
+          quote={quotes[selectedChartScrip.scriptToken || selectedChartScrip.symbol]}
+          position={positions.flatMap((p: any) => p.positions || []).find((pos: any) => (pos.symbol && pos.symbol === selectedChartScrip.symbol) || (pos.scripRefKey && pos.scripRefKey === selectedChartScrip.scripRefKey))}
+          onClose={() => setSelectedChartScrip(null)}
+          onOpenQuickOrder={(scrip, side) => {
+            setSelectedChartScrip(null);
+            setOrderDialog({ scrip, side });
+          }}
         />
       )}
     </div>

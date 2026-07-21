@@ -7,6 +7,7 @@ import {
   Database,
   Wifi,
   WifiOff,
+  BarChart2,
 } from "lucide-react";
 import {
   AccountSummary,
@@ -39,6 +40,9 @@ interface TerminalViewProps {
 
   // Quick Order Dialog Trigger
   onOpenQuickOrder: (scrip: ScripInfo, side: "BUY" | "SELL") => void;
+
+  // Live Chart Trigger
+  onOpenChart: (scrip: any) => void;
 
   // Accounts & Master
   masterAcc?: AccountSummary;
@@ -74,6 +78,7 @@ export function TerminalView({
   onTabChange,
   quotes,
   onOpenQuickOrder,
+  onOpenChart,
   masterAcc,
   slaveAccs,
   margins,
@@ -196,13 +201,22 @@ export function TerminalView({
                               Lot Size: {item.lotSize}
                             </p>
                           </div>
-                          <button
-                            onClick={() => onToggleWatchlist(item)}
-                            className="text-amber-400 hover:text-amber-300 p-1 cursor-pointer"
-                            title="Remove from Watchlist"
-                          >
-                            <Star className="w-4 h-4 fill-current" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => onOpenChart(item)}
+                              className="text-cyan-400 hover:text-cyan-300 p-1 cursor-pointer"
+                              title="Open Live Chart"
+                            >
+                              <BarChart2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => onToggleWatchlist(item)}
+                              className="text-amber-400 hover:text-amber-300 p-1 cursor-pointer"
+                              title="Remove from Watchlist"
+                            >
+                              <Star className="w-4 h-4 fill-current" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Live Quote Price & Action Buttons */}
@@ -312,6 +326,13 @@ export function TerminalView({
                             </span>
                           )}
                           <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => onOpenChart(item)}
+                              className="p-1.5 rounded-lg border bg-slate-800 border-slate-700 text-cyan-400 hover:text-cyan-300 transition-all cursor-pointer"
+                              title="Open Live Chart"
+                            >
+                              <BarChart2 className="w-3.5 h-3.5" />
+                            </button>
                             <button
                               onClick={() => onToggleWatchlist(item)}
                               className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
@@ -504,6 +525,14 @@ export function TerminalView({
                               </div>
 
                               <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => onOpenChart(pos)}
+                                  className="px-2 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[10px] font-bold rounded-lg cursor-pointer flex items-center gap-1"
+                                  title="Open Live Chart with Trades Overlay"
+                                >
+                                  <BarChart2 className="w-3 h-3" />
+                                  <span>Chart</span>
+                                </button>
                                 {!isClosed && (
                                   <button
                                     onClick={() => onOpenOcoDialog({ ...pos, accountId: pos.accountId || accPos.accountId, accountName: pos.accountName || accPos.accountName || accPos.nickname })}
