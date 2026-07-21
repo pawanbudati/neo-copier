@@ -2008,8 +2008,9 @@ export default function App() {
   }) => {
     if (!selectedOcoPosition) return;
     try {
+      const activeAccId = selectedOcoPosition.accountId || masterAcc?.id || (accounts.find((a) => a.status === "active")?.id);
       const body = {
-        accountId: selectedOcoPosition.accountId,
+        accountId: activeAccId,
         symbol: selectedOcoPosition.symbol,
         segment: selectedOcoPosition.segment,
         quantity: data.quantity,
