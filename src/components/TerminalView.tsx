@@ -55,6 +55,10 @@ interface TerminalViewProps {
   positions: any[];
   loadingPositions: boolean;
   onFetchPositions: () => void;
+  autoPollPositions?: boolean;
+  onToggleAutoPollPositions?: () => void;
+  autoPollMargins?: boolean;
+  onToggleAutoPollMargins?: () => void;
   exitingAll: boolean;
   onExitAllPositions: () => void;
   exitingPositionId: string | null;
@@ -87,6 +91,10 @@ export function TerminalView({
   positions,
   loadingPositions,
   onFetchPositions,
+  autoPollPositions = false,
+  onToggleAutoPollPositions,
+  autoPollMargins = false,
+  onToggleAutoPollMargins,
   exitingAll,
   onExitAllPositions,
   exitingPositionId,
@@ -375,7 +383,33 @@ export function TerminalView({
             <Activity className="w-4 h-4 text-emerald-400" />
             <h3 className="text-sm font-bold text-slate-100 font-mono">Open Positions & Margins</h3>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+            {onToggleAutoPollPositions && (
+              <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-mono text-slate-300 bg-slate-950/60 border border-slate-800 px-2.5 py-1 rounded-lg hover:border-slate-700 transition">
+                <input
+                  type="checkbox"
+                  checked={autoPollPositions}
+                  onChange={onToggleAutoPollPositions}
+                  className="sr-only peer"
+                />
+                <div className="w-7 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500 relative" />
+                <span className="text-[11px] font-semibold text-slate-300">Auto-Poll Pos</span>
+              </label>
+            )}
+
+            {onToggleAutoPollMargins && (
+              <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-mono text-slate-300 bg-slate-950/60 border border-slate-800 px-2.5 py-1 rounded-lg hover:border-slate-700 transition">
+                <input
+                  type="checkbox"
+                  checked={autoPollMargins}
+                  onChange={onToggleAutoPollMargins}
+                  className="sr-only peer"
+                />
+                <div className="w-7 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-teal-500 relative" />
+                <span className="text-[11px] font-semibold text-slate-300">Auto-Poll Margins</span>
+              </label>
+            )}
+
             <button
               onClick={() => {
                 onFetchPositions();
@@ -383,7 +417,7 @@ export function TerminalView({
               }}
               className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingPositions ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingPositions || loadingMargins ? "animate-spin" : ""}`} />
               <span>Refresh</span>
             </button>
             <button

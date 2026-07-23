@@ -1761,24 +1761,51 @@ export default function App() {
     subscribeToTokens(allTokens);
   }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn, authToken, subscribeOnSearch, orderDialog]);
 
-  // Fetch margins and positions when positions tab or terminal screen is loaded with smooth background polling (every 3s)
+  const [autoPollPositions, setAutoPollPositions] = useState<boolean>(() => {
+    return localStorage.getItem("neo-auto-poll-positions") === "true";
+  });
+  const [autoPollMargins, setAutoPollMargins] = useState<boolean>(() => {
+    return localStorage.getItem("neo-auto-poll-margins") === "true";
+  });
+
+  const toggleAutoPollPositions = () => {
+    setAutoPollPositions((prev) => {
+      const next = !prev;
+      localStorage.setItem("neo-auto-poll-positions", String(next));
+      showNotification(`Auto-polling positions ${next ? "ENABLED" : "DISABLED"}`, next ? "success" : "info");
+      return next;
+    });
+  };
+
+  const toggleAutoPollMargins = () => {
+    setAutoPollMargins((prev) => {
+      const next = !prev;
+      localStorage.setItem("neo-auto-poll-margins", String(next));
+      showNotification(`Auto-polling margins ${next ? "ENABLED" : "DISABLED"}`, next ? "success" : "info");
+      return next;
+    });
+  };
+
+  // Fetch margins and positions when required or if auto-poll switches are enabled
   useEffect(() => {
     if (!authToken || !powerOn) return;
     if (leftTab !== "positions" && mainScreen !== "terminal" && !orderDialog) return;
 
-    fetchMargins(false);
-    fetchPositions(false);
+    if (autoPollPositions) fetchPositions(false);
+    if (autoPollMargins) fetchMargins(false);
     if (leftTab === "positions") {
       fetchActiveOcos();
     }
 
+    if (!autoPollPositions && !autoPollMargins) return;
+
     const interval = setInterval(() => {
-      fetchPositions(false);
-      fetchMargins(false);
+      if (autoPollPositions) fetchPositions(false);
+      if (autoPollMargins) fetchMargins(false);
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [leftTab, mainScreen, orderDialog, authToken, powerOn]);
+  }, [leftTab, mainScreen, orderDialog, authToken, powerOn, autoPollPositions, autoPollMargins]);
 
   // Logs Auto-refresh polling
   useEffect(() => {
@@ -2913,6 +2940,10 @@ export default function App() {
             positions={positions}
             loadingPositions={loadingPositions}
             onFetchPositions={() => fetchPositions(true)}
+            autoPollPositions={autoPollPositions}
+            onToggleAutoPollPositions={toggleAutoPollPositions}
+            autoPollMargins={autoPollMargins}
+            onToggleAutoPollMargins={toggleAutoPollMargins}
             exitingAll={exitingAll}
             onExitAllPositions={handleExitAllPositions}
             exitingPositionId={exitingPositionId}
