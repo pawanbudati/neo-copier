@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Terminal, RefreshCw, Search } from "lucide-react";
+import { Terminal, RefreshCw, Search, Trash2 } from "lucide-react";
 
 interface LogsViewProps {
   backendLogs: string[];
   loadingLogs: boolean;
   onFetchLogs: () => void;
+  onClearLogs?: () => void;
   logFilter: "ALL" | "INFO" | "WARN" | "ERROR";
   onLogFilterChange: (filter: "ALL" | "INFO" | "WARN" | "ERROR") => void;
   autoRefreshLogs: boolean;
@@ -15,6 +16,7 @@ export function LogsView({
   backendLogs,
   loadingLogs,
   onFetchLogs,
+  onClearLogs,
   logFilter,
   onLogFilterChange,
   autoRefreshLogs,
@@ -87,11 +89,22 @@ export function LogsView({
 
           <button
             onClick={onFetchLogs}
-            className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+            className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer font-mono"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingLogs ? "animate-spin" : ""}`} />
             <span>Fetch Logs</span>
           </button>
+
+          {onClearLogs && (
+            <button
+              onClick={onClearLogs}
+              className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition-all font-mono"
+              title="Clear and truncate backend log file"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear Logs</span>
+            </button>
+          )}
         </div>
       </div>
 

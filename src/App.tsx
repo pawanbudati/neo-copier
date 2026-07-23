@@ -2993,6 +2993,7 @@ export default function App() {
             backendLogs={backendLogs}
             loadingLogs={loadingLogs}
             onFetchLogs={fetchLogs}
+            onClearLogs={handleClearLogs}
             logFilter={logFilter}
             onLogFilterChange={setLogFilter}
             autoRefreshLogs={autoRefreshLogs}
