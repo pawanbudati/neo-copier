@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Search,
   Star,
@@ -8,6 +8,7 @@ import {
   Wifi,
   WifiOff,
   BarChart2,
+  X,
 } from "lucide-react";
 import {
   AccountSummary,
@@ -101,224 +102,108 @@ export function TerminalView({
   onExitPosition,
   onOpenOcoDialog,
 }: TerminalViewProps) {
-  const [terminalTab, setTerminalTab] = useState<"watchlist" | "search">("watchlist");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fmt = (n: number) =>
     n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="space-y-6">
-      {/* Top Section: Watchlist & Scrip Search (Full Width) */}
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl overflow-hidden backdrop-blur-sm flex flex-col min-h-[440px]">
-        {/* Sub-tabs header */}
-        <div className="p-2.5 sm:p-3 border-b border-slate-800 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 bg-slate-950/60">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <button
-              onClick={() => {
-                setTerminalTab("watchlist");
-                onTabChange?.("watchlist");
-              }}
-              className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                terminalTab === "watchlist"
-                  ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
+      {/* Top Section: Watchlist & Floating Absolute Search Dropdown */}
+      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl overflow-visible backdrop-blur-sm flex flex-col">
+        {/* Top Toolbar Header */}
+        <div className="p-3 border-b border-slate-800 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 bg-slate-950/60 rounded-t-2xl relative">
+          
+          {/* Watchlist Header Badge */}
+          <div className="flex items-center gap-2">
+            <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5">
               <Star className="w-3.5 h-3.5 fill-current" />
               <span>Watchlist ({watchlist.length})</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setTerminalTab("search");
-                onTabChange?.("search");
-              }}
-              className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                terminalTab === "search"
-                  ? "bg-teal-500/10 text-teal-400 border border-teal-500/30"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <Search className="w-3.5 h-3.5" />
-              <span>Search</span>
-            </button>
-
-            {/* Stream toggle - only visible when search tab is active */}
-            {terminalTab === "search" && (
-              <button
-                onClick={onToggleSubscribeOnSearch}
-                className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  subscribeOnSearch
-                    ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
-                    : "bg-slate-800/60 text-slate-500 border border-slate-700/50 hover:text-slate-300"
-                }`}
-                title={subscribeOnSearch ? "Live streaming ON for search results" : "Live streaming OFF for search results"}
-              >
-                {subscribeOnSearch ? (
-                  <Wifi className="w-3.5 h-3.5" />
-                ) : (
-                  <WifiOff className="w-3.5 h-3.5" />
-                )}
-                <span className="hidden sm:inline">Stream</span>
-              </button>
-            )}
+            </div>
           </div>
 
-          <button
-            onClick={onOpenScripModal}
-            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 cursor-pointer shrink-0 ml-auto sm:ml-0"
-          >
-            <Database className="w-3 h-3 text-teal-400" />
-            <span>Db Master ({scripStatus.totalCount})</span>
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="p-3 sm:p-4 flex-1 overflow-y-auto">
-          {terminalTab === "watchlist" ? (
-            // Watchlist view
-            <div>
-              {watchlist.length === 0 ? (
-                <div className="text-center py-12 sm:py-16 text-slate-500 text-xs px-4">
-                  <Star className="w-8 h-8 mx-auto mb-2 text-slate-600 opacity-40" />
-                  <p className="font-semibold text-slate-400">Your Watchlist is empty.</p>
-                  <p className="text-[11px] text-slate-600 mt-1 max-w-sm mx-auto">
-                    Switch to the Search tab to search instruments and click the star icon to pin them here for 1-click execution.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {watchlist.map((item) => {
-                    const q = quotes[item.scriptToken];
-                    return (
-                      <div
-                        key={item.scriptToken}
-                        className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col justify-between gap-3 hover:border-slate-700 transition-all group"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="text-xs font-mono font-bold text-slate-100">
-                                {item.scripRefKey || item.tradingSymbol}
-                              </h4>
-                              <span className="text-[9px] uppercase px-1 py-0.2 bg-slate-800 text-slate-400 rounded">
-                                {item.exchange}
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
-                              Lot Size: {item.lotSize}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => onOpenChart(item)}
-                              className="text-cyan-400 hover:text-cyan-300 p-1 cursor-pointer"
-                              title="Open Live Chart"
-                            >
-                              <BarChart2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => onToggleWatchlist(item)}
-                              className="text-amber-400 hover:text-amber-300 p-1 cursor-pointer"
-                              title="Remove from Watchlist"
-                            >
-                              <Star className="w-4 h-4 fill-current" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Live Quote Price & Action Buttons */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800/60">
-                          <div>
-                            {q ? (
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-sm font-mono font-bold text-slate-100">
-                                  ₹{fmt(q.ltp)}
-                                </span>
-                                <span
-                                  className={`text-[10px] font-mono font-bold ${
-                                    q.change >= 0 ? "text-emerald-400" : "text-rose-400"
-                                  }`}
-                                >
-                                  {q.change >= 0 ? "+" : ""}
-                                  {q.change.toFixed(2)} ({q.changePct >= 0 ? "+" : ""}
-                                  {q.changePct.toFixed(2)}%)
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-slate-600 font-mono animate-pulse">
-                                Fetching price...
-                              </span>
-                            )}
-                          </div>
-
-                          {/* 1-Click Buy / Sell buttons */}
-                          <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                            <button
-                              onClick={() => onOpenQuickOrder(item, "BUY")}
-                              className="flex-1 sm:flex-none px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold text-xs rounded-lg cursor-pointer transition-all text-center"
-                            >
-                              BUY
-                            </button>
-                            <button
-                              onClick={() => onOpenQuickOrder(item, "SELL")}
-                              className="flex-1 sm:flex-none px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold text-xs rounded-lg cursor-pointer transition-all text-center"
-                            >
-                              SELL
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+          {/* Search Input with Floating Absolute Autocomplete Dropdown */}
+          <div className="relative flex-1 max-w-md w-full" ref={searchRef}>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 z-10" />
+              <input
+                type="text"
+                placeholder="Search NIFTY, SENSEX, CE/PE Options, Stocks..."
+                value={searchQuery}
+                onFocus={() => setIsSearchOpen(true)}
+                onChange={(e) => {
+                  onSearchQueryChange(e.target.value);
+                  setIsSearchOpen(true);
+                }}
+                className="w-full bg-slate-950/90 border border-slate-800 focus:border-teal-500 rounded-xl pl-8 pr-8 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-all font-mono"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSearchQueryChange("");
+                    setIsSearchOpen(false);
+                  }}
+                  className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-200"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               )}
             </div>
-          ) : (
-            // Search view
-            <div className="space-y-4">
-              <form onSubmit={onSearchSubmit} className="flex flex-col sm:flex-row gap-2">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
-                  <input
-                    type="text"
-                    placeholder="Search Banknifty, Nifty CE/PE, Stock Futures..."
-                    value={searchQuery}
-                    onChange={(e) => onSearchQueryChange(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 sm:py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-500"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSearching}
-                  className="px-4 py-2.5 sm:py-2 bg-teal-500 hover:bg-teal-600 text-slate-950 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {isSearching ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Search className="w-3.5 h-3.5" />
-                  )}
-                  <span>Search</span>
-                </button>
-              </form>
 
-              {/* Search Results */}
-              {searchResults.length > 0 && (
-                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                  {searchResults.map((item) => {
+            {/* Floating Absolute Dropdown List */}
+            {isSearchOpen && searchQuery.trim().length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-slate-900/95 border border-slate-700/80 shadow-2xl rounded-2xl backdrop-blur-xl p-3 max-h-[380px] overflow-y-auto space-y-2 border-t-2 border-t-teal-500 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2 px-1 text-[11px] text-slate-400">
+                  <span className="font-semibold text-slate-300">Search Results ({searchResults.length})</span>
+                  <button
+                    onClick={onToggleSubscribeOnSearch}
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono flex items-center gap-1 cursor-pointer ${
+                      subscribeOnSearch
+                        ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
+                        : "bg-slate-800 text-slate-500 border border-slate-700"
+                    }`}
+                  >
+                    {subscribeOnSearch ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                    <span>Stream</span>
+                  </button>
+                </div>
+
+                {isSearching ? (
+                  <div className="py-6 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-teal-400" />
+                    <span>Searching scrip master...</span>
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-slate-500 font-mono">
+                    No scrips found matching "{searchQuery}".
+                  </div>
+                ) : (
+                  searchResults.map((item) => {
                     const starred = isStarred(item.scriptToken);
                     const q = quotes[item.scriptToken];
                     return (
                       <div
                         key={item.scriptToken}
-                        className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                        className="p-2.5 bg-slate-950/80 hover:bg-slate-950 border border-slate-800/80 hover:border-slate-700 rounded-xl flex items-center justify-between gap-3 text-xs transition-all"
                       >
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-mono font-bold text-slate-100">
                               {item.scripRefKey || item.tradingSymbol}
                             </span>
-                            <span className="text-[9px] bg-slate-800 px-1.5 py-0.2 text-slate-400 rounded">
+                            <span className="text-[9px] bg-slate-800 px-1.5 py-0.2 text-slate-400 rounded font-mono font-bold uppercase">
                               {item.exchange}
                             </span>
                           </div>
@@ -327,13 +212,13 @@ export function TerminalView({
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/60">
+                        <div className="flex items-center gap-2 shrink-0">
                           {q && (
                             <span className="font-mono font-bold text-teal-400 text-xs">
                               ₹{fmt(q.ltp)}
                             </span>
                           )}
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1">
                             <button
                               onClick={() => onOpenChart(item)}
                               className="p-1.5 rounded-lg border bg-slate-800 border-slate-700 text-cyan-400 hover:text-cyan-300 transition-all cursor-pointer"
@@ -353,13 +238,19 @@ export function TerminalView({
                               <Star className={`w-3.5 h-3.5 ${starred ? "fill-current" : ""}`} />
                             </button>
                             <button
-                              onClick={() => onOpenQuickOrder(item, "BUY")}
+                              onClick={() => {
+                                onOpenQuickOrder(item, "BUY");
+                                setIsSearchOpen(false);
+                              }}
                               className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold rounded cursor-pointer"
                             >
                               BUY
                             </button>
                             <button
-                              onClick={() => onOpenQuickOrder(item, "SELL")}
+                              onClick={() => {
+                                onOpenQuickOrder(item, "SELL");
+                                setIsSearchOpen(false);
+                              }}
                               className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold rounded cursor-pointer"
                             >
                               SELL
@@ -368,11 +259,121 @@ export function TerminalView({
                         </div>
                       </div>
                     );
-                  })}
-                </div>
-              )}
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* DB Master status button */}
+          <button
+            onClick={onOpenScripModal}
+            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 cursor-pointer shrink-0"
+          >
+            <Database className="w-3 h-3 text-teal-400" />
+            <span>Db Master ({scripStatus.totalCount?.toLocaleString() || 0})</span>
+          </button>
+        </div>
+
+        {/* Watchlist Grid Items — Dynamic Height up to 5 items, scrollbar when > 5 items */}
+        <div className={`p-3 sm:p-4 transition-all duration-300 ${watchlist.length > 5 ? "max-h-[380px] overflow-y-auto" : ""}`}>
+          {watchlist.length === 0 ? (
+            <div className="text-center py-6 text-slate-500 text-xs px-4">
+              <Star className="w-6 h-6 mx-auto mb-1.5 text-slate-600 opacity-40" />
+              <p className="font-semibold text-slate-400 text-xs">Your Watchlist is empty.</p>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                Type in the search bar above to find scrips and click the ⭐ icon to pin them here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {watchlist.map((item) => {
+                const q = quotes[item.scriptToken];
+                return (
+                  <div
+                    key={item.scriptToken}
+                    className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex flex-col justify-between gap-3 hover:border-slate-700 transition-all group"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-xs font-mono font-bold text-slate-100">
+                            {item.scripRefKey || item.tradingSymbol}
+                          </h4>
+                          <span className="text-[9px] uppercase px-1 py-0.2 bg-slate-800 text-slate-400 rounded font-mono font-bold">
+                            {item.exchange}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                          Lot Size: {item.lotSize}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => onOpenChart(item)}
+                          className="text-cyan-400 hover:text-cyan-300 p-1 cursor-pointer"
+                          title="Open Live Chart"
+                        >
+                          <BarChart2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => onToggleWatchlist(item)}
+                          className="text-amber-400 hover:text-amber-300 p-1 cursor-pointer"
+                          title="Remove from Watchlist"
+                        >
+                          <Star className="w-4 h-4 fill-current" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Live Quote Price & Action Buttons */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-800/60">
+                      <div>
+                        {q ? (
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-sm font-mono font-bold text-slate-100">
+                              ₹{fmt(q.ltp)}
+                            </span>
+                            <span
+                              className={`text-[10px] font-mono font-bold ${
+                                q.change >= 0 ? "text-emerald-400" : "text-rose-400"
+                              }`}
+                            >
+                              {q.change >= 0 ? "+" : ""}
+                              {q.change.toFixed(2)} ({q.changePct >= 0 ? "+" : ""}
+                              {q.changePct.toFixed(2)}%)
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-600 font-mono animate-pulse">
+                            Fetching price...
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 1-Click Buy / Sell buttons */}
+                      <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                        <button
+                          onClick={() => onOpenQuickOrder(item, "BUY")}
+                          className="flex-1 sm:flex-none px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold text-xs rounded-lg cursor-pointer transition-all text-center"
+                        >
+                          BUY
+                        </button>
+                        <button
+                          onClick={() => onOpenQuickOrder(item, "SELL")}
+                          className="flex-1 sm:flex-none px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold text-xs rounded-lg cursor-pointer transition-all text-center"
+                        >
+                          SELL
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
+        </div>
+      </div>
         </div>
       </div>
 
