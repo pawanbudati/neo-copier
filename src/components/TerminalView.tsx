@@ -374,8 +374,6 @@ export function TerminalView({
           )}
         </div>
       </div>
-        </div>
-      </div>
 
       {/* Bottom Section: Positions & Margins */}
       <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-sm space-y-4">
