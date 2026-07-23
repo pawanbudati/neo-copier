@@ -1067,6 +1067,8 @@ interface ScripManagerModalProps {
   scripCacheStatus: { isCached: boolean; count: number };
   cachingScrips: boolean;
   onCacheScrips: () => void;
+  isSyncingDailyOptions?: boolean;
+  onLoadDailyOptions?: () => void;
 }
 
 const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
@@ -1082,6 +1084,8 @@ const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
   scripCacheStatus,
   cachingScrips,
   onCacheScrips,
+  isSyncingDailyOptions = false,
+  onLoadDailyOptions,
 }) => {
   if (!isOpen) return null;
 
@@ -1129,7 +1133,19 @@ const ScripManagerModal: React.FC<ScripManagerModalProps> = ({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {onLoadDailyOptions && (
+              <button
+                type="button"
+                onClick={onLoadDailyOptions}
+                disabled={isLoadingAll || isSyncingDailyOptions}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium transition disabled:opacity-50"
+                title="Load Nifty & Sensex Options for current and future expiries (7 AM Daily Sync)."
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingDailyOptions ? "animate-spin" : ""}`} />
+                {isSyncingDailyOptions ? "Syncing Options..." : "Sync Daily Options (Nifty & Sensex)"}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => onLoadCategory()}
@@ -2224,6 +2240,30 @@ export default function App() {
     }
   };
 
+  const [isSyncingDailyOptions, setIsSyncingDailyOptions] = useState(false);
+
+  const handleLoadDailyOptions = async () => {
+    setIsSyncingDailyOptions(true);
+    try {
+      const r = await fetch("/api/scrips/load-daily-options", { method: "POST" });
+      const d = await r.json();
+      if (r.ok && d.success) {
+        fetchScripStatus();
+        fetchScripCacheStatus();
+        showNotification(
+          `Daily options sync complete! Nifty: ${d.niftyCount?.toLocaleString() || 0}, Sensex: ${d.sensexCount?.toLocaleString() || 0}`,
+          "success"
+        );
+      } else {
+        showNotification(d.error || "Failed to sync daily options", "error");
+      }
+    } catch (_) {
+      showNotification("Failed to sync daily options", "error");
+    } finally {
+      setIsSyncingDailyOptions(false);
+    }
+  };
+
   // ─────────────────────────────────────────────────────────────────────────
   // Watchlist API calls
   // ─────────────────────────────────────────────────────────────────────────
@@ -2956,6 +2996,8 @@ export default function App() {
         scripCacheStatus={scripCacheStatus}
         cachingScrips={cachingScrips}
         onCacheScrips={handleCacheScrips}
+        isSyncingDailyOptions={isSyncingDailyOptions}
+        onLoadDailyOptions={handleLoadDailyOptions}
       />
 
       {orderDialog && (
