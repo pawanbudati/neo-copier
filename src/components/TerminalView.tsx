@@ -121,16 +121,24 @@ export function TerminalView({
   return (
     <div className="space-y-6">
       {/* Top Section: Watchlist & Floating Absolute Search Dropdown */}
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl overflow-visible backdrop-blur-sm flex flex-col">
+      <div className="relative z-30 bg-slate-900/40 border border-slate-800/80 rounded-2xl backdrop-blur-sm flex flex-col">
         {/* Top Toolbar Header */}
-        <div className="p-3 border-b border-slate-800 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 bg-slate-950/60 rounded-t-2xl relative">
+        <div className="p-3 border-b border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-slate-950/60 rounded-t-2xl relative">
           
-          {/* Watchlist Header Badge */}
-          <div className="flex items-center gap-2">
-            <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5">
+          {/* Watchlist Header Badge & Db Master Button (Flex row on mobile, split on desktop) */}
+          <div className="flex items-center justify-between gap-2 sm:contents">
+            <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 shrink-0">
               <Star className="w-3.5 h-3.5 fill-current" />
               <span>Watchlist ({watchlist.length})</span>
             </div>
+
+            <button
+              onClick={onOpenScripModal}
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-pointer shrink-0 sm:order-last"
+            >
+              <Database className="w-3.5 h-3.5 text-teal-400" />
+              <span>Db Master ({scripStatus.totalCount?.toLocaleString() || 0})</span>
+            </button>
           </div>
 
           {/* Search Input with Floating Absolute Autocomplete Dropdown */}
@@ -162,9 +170,9 @@ export function TerminalView({
               )}
             </div>
 
-            {/* Floating Absolute Dropdown List */}
+            {/* Floating Absolute Dropdown List - Always on Top with z-[100] */}
             {isSearchOpen && searchQuery.trim().length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-slate-900/95 border border-slate-700/80 shadow-2xl rounded-2xl backdrop-blur-xl p-3 max-h-[380px] overflow-y-auto space-y-2 border-t-2 border-t-teal-500 animate-in fade-in slide-in-from-top-1">
+              <div className="absolute left-0 right-0 top-full mt-1.5 z-[100] bg-slate-900/98 border border-slate-700/90 shadow-2xl rounded-2xl backdrop-blur-xl p-3 max-h-[380px] overflow-y-auto space-y-2 border-t-2 border-t-teal-500 animate-in fade-in slide-in-from-top-1">
                 <div className="flex items-center justify-between border-b border-slate-800/80 pb-2 px-1 text-[11px] text-slate-400">
                   <span className="font-semibold text-slate-300">Search Results ({searchResults.length})</span>
                   <button
@@ -196,7 +204,7 @@ export function TerminalView({
                     return (
                       <div
                         key={item.scriptToken}
-                        className="p-2.5 bg-slate-950/80 hover:bg-slate-950 border border-slate-800/80 hover:border-slate-700 rounded-xl flex items-center justify-between gap-3 text-xs transition-all"
+                        className="p-2.5 bg-slate-950/90 hover:bg-slate-950 border border-slate-800/80 hover:border-slate-700 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs transition-all"
                       >
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
@@ -212,7 +220,7 @@ export function TerminalView({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 border-t border-slate-800/60 pt-2 sm:border-t-0 sm:pt-0">
                           {q && (
                             <span className="font-mono font-bold text-teal-400 text-xs">
                               ₹{fmt(q.ltp)}
@@ -264,15 +272,6 @@ export function TerminalView({
               </div>
             )}
           </div>
-
-          {/* DB Master status button */}
-          <button
-            onClick={onOpenScripModal}
-            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 cursor-pointer shrink-0"
-          >
-            <Database className="w-3 h-3 text-teal-400" />
-            <span>Db Master ({scripStatus.totalCount?.toLocaleString() || 0})</span>
-          </button>
         </div>
 
         {/* Watchlist Grid Items — Dynamic Height up to 5 items, scrollbar when > 5 items */}
@@ -376,7 +375,7 @@ export function TerminalView({
       </div>
 
       {/* Bottom Section: Positions & Margins */}
-      <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-sm space-y-4">
+      <div className="relative z-10 bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-emerald-400" />
