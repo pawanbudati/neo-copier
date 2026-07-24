@@ -131,7 +131,7 @@ export function LiveChartModal({
     areaSeriesRef.current = areaSeries;
 
     // Fetch real historical candles from backend API
-    const targetToken = scrip?.scriptToken || position?.scriptToken || scrip?.symbol || "";
+    const targetToken = scrip?.scriptToken || scrip?.token || scrip?.tok || position?.scriptToken || position?.token || position?.tok || scrip?.symbol || "";
 
     fetch(`/api/scrips/history?token=${encodeURIComponent(targetToken)}&timeframe=${timeframe}`)
       .then((res) => (res.ok ? res.json() : []))
@@ -167,6 +167,11 @@ export function LiveChartModal({
         }
 
         candleSeries.setData(formattedData);
+        if (areaSeriesRef.current) {
+          areaSeriesRef.current.setData(
+            formattedData.map((b) => ({ time: b.time, value: b.close }))
+          );
+        }
 
         const last = formattedData[formattedData.length - 1];
         currentCandleRef.current = {
