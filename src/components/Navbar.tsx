@@ -16,7 +16,7 @@ interface NavbarProps {
   quotes: Record<string, QuoteData>;
   powerOn: boolean;
   onTogglePower: () => void;
-  theme: "classic" | "modern" | "cyberpunk";
+  theme: "classic" | "modern";
   onCycleTheme: () => void;
   pendingOrdersCount: number;
   masterAccount?: AccountSummary;

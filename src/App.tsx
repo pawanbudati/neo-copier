@@ -1281,8 +1281,8 @@ export default function App() {
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [theme, setTheme] = useState<"classic" | "modern" | "cyberpunk">(
-    () => (localStorage.getItem("neo-theme") as "classic" | "modern" | "cyberpunk") || "classic"
+  const [theme, setTheme] = useState<"classic" | "modern">(
+    () => (localStorage.getItem("neo-theme") as "classic" | "modern") || "classic"
   );
 
   const [currentFavicon, setCurrentFavicon] = useState<string>(() => {
@@ -2784,8 +2784,9 @@ export default function App() {
     return (
       <div
         id="neo-copier-auth"
-        className={`min-h-screen bg-slate-900 text-slate-100 font-sans flex items-center justify-center p-4 selection:bg-teal-500 selection:text-white transition-colors duration-300 ${theme === "modern" ? "theme-modern" : theme === "cyberpunk" ? "theme-cyberpunk" : ""
-          }`}
+        className={`min-h-screen bg-slate-900 text-slate-100 font-sans flex items-center justify-center p-4 selection:bg-teal-500 selection:text-white transition-colors duration-300 ${
+          theme === "modern" ? "theme-modern" : ""
+        }`}
       >
         <div className="bg-slate-950 border border-slate-800 rounded-2xl p-8 w-full max-w-md space-y-6 shadow-2xl relative">
           <div className="text-center space-y-2">
@@ -2860,7 +2861,7 @@ export default function App() {
     <div
       id="neo-copier-dashboard"
       className={`min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-teal-500 selection:text-white transition-colors duration-300 ${
-        theme === "modern" ? "theme-modern" : theme === "cyberpunk" ? "theme-cyberpunk" : ""
+        theme === "modern" ? "theme-modern" : ""
       }`}
     >
       {/* Notification Banner */}
@@ -2902,7 +2903,7 @@ export default function App() {
         onTogglePower={togglePower}
         theme={theme}
         onCycleTheme={() =>
-          setTheme((t) => (t === "classic" ? "modern" : t === "modern" ? "cyberpunk" : "classic"))
+          setTheme((t) => (t === "classic" ? "modern" : "classic"))
         }
         pendingOrdersCount={pendingMasterOrders.length}
         masterAccount={masterAcc}
