@@ -259,6 +259,15 @@ function AccountCardItem({
                 {acc.multiplier}x Multiplier
               </span>
             )}
+            <span
+              className={`text-[10px] font-semibold font-mono px-1.5 py-0.5 rounded border ${
+                acc.hasAutoTotpSecret
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                  : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+              }`}
+            >
+              {acc.hasAutoTotpSecret ? "2FA Auto-Renew Ready" : "Manual OTP"}
+            </span>
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 font-mono">
             <span>

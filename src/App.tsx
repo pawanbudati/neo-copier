@@ -4,6 +4,7 @@ import { OrdersView } from "./components/OrdersView";
 import { AccountsView } from "./components/AccountsView";
 import { LogsView } from "./components/LogsView";
 import { LiveChartModal } from "./components/LiveChartModal";
+import { AccountModal } from "./components/AccountModal";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { KotakLiveFeed } from "./kotakWebSocket";
 import {
@@ -3081,6 +3082,31 @@ export default function App() {
           }}
         />
       )}
+
+      <AccountModal
+        isOpen={showAddForm}
+        onClose={resetForm}
+        onSave={handleSaveAccount}
+        editingAccountId={editingAccountId}
+        nickname={nickname}
+        setNickname={setNickname}
+        role={role}
+        setRole={setRole}
+        mobileNumber={mobileNumber}
+        setMobileNumber={setMobileNumber}
+        ucc={ucc}
+        setUcc={setUcc}
+        mpin={mpin}
+        setMpin={setMpin}
+        consumerKey={consumerKey}
+        setConsumerKey={setConsumerKey}
+        totpSecret={totpSecret}
+        setTotpSecret={setTotpSecret}
+        multiplier={multiplier}
+        setMultiplier={setMultiplier}
+        savingAccount={savingAccount}
+        masterExists={!!masterAcc}
+      />
     </div>
   );
 }
