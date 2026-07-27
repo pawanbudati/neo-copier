@@ -36,6 +36,42 @@ export function LiveChartModal({
   const [timeframe, setTimeframe] = useState<"1m" | "5m" | "15m" | "1h">("1m");
   const [chartType, setChartType] = useState<"candles" | "area">("candles");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [upstoxConnected, setUpstoxConnected] = useState<boolean | null>(null);
+  const [upstoxAuthUrl, setUpstoxAuthUrl] = useState<string>("");
+
+  useEffect(() => {
+    fetch("/api/upstox/status")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setUpstoxConnected(!!data.hasToken);
+          if (data.authUrl) setUpstoxAuthUrl(data.authUrl);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleConnectUpstox = () => {
+    if (upstoxAuthUrl) {
+      window.open(upstoxAuthUrl, "_blank");
+    } else {
+      const manualToken = prompt("Enter Upstox Access Token:");
+      if (manualToken && manualToken.trim()) {
+        fetch("/api/upstox/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accessToken: manualToken.trim() }),
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.hasToken) {
+              setUpstoxConnected(true);
+              window.location.reload();
+            }
+          });
+      }
+    }
+  };
 
   // In-memory candle tracking for real-time WebSocket updates
   const currentCandleRef = useRef<{
@@ -333,6 +369,20 @@ export function LiveChartModal({
                   <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-bold uppercase">
                     Open Position
                   </span>
+                )}
+                {upstoxConnected === true && (
+                  <span className="text-[9px] bg-teal-500/10 text-teal-300 border border-teal-500/30 px-1.5 py-0.2 rounded font-mono font-bold uppercase">
+                    ✓ Upstox History
+                  </span>
+                )}
+                {upstoxConnected === false && (
+                  <button
+                    onClick={handleConnectUpstox}
+                    title="Connect Upstox for authentic historical chart candles"
+                    className="text-[9px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-mono font-bold uppercase transition-all cursor-pointer"
+                  >
+                    ⚡ Connect Upstox
+                  </button>
                 )}
               </div>
               <div className="flex items-center gap-2 text-xs font-mono mt-0.5">
