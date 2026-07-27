@@ -54,8 +54,8 @@ export function LiveChartModal({
   const handleConnectUpstox = async () => {
     try {
       const res = await fetch("/api/upstox/auth-url").then((r) => (r.ok ? r.json() : null));
-      if (res && res.authUrl && res.authUrl.trim()) {
-        window.open(res.authUrl, "_blank");
+      if (res && res.isConfigured && res.authUrl) {
+        window.location.href = "/api/upstox/login";
         return;
       }
     } catch (_) {}
