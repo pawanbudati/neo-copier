@@ -254,15 +254,7 @@ export function TerminalView({
                             >
                               BUY
                             </button>
-                            <button
-                              onClick={() => {
-                                onOpenQuickOrder(item, "SELL");
-                                setIsSearchOpen(false);
-                              }}
-                              className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold rounded cursor-pointer"
-                            >
-                              SELL
-                            </button>
+
                           </div>
                         </div>
                       </div>
@@ -358,12 +350,7 @@ export function TerminalView({
                         >
                           BUY
                         </button>
-                        <button
-                          onClick={() => onOpenQuickOrder(item, "SELL")}
-                          className="flex-1 sm:flex-none px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 font-bold text-xs rounded-lg cursor-pointer transition-all text-center"
-                        >
-                          SELL
-                        </button>
+
                       </div>
                     </div>
                   </div>

@@ -318,19 +318,13 @@ function ScripRow({
           )}
         </button>
 
-        {/* Buy/Sell buttons container */}
+        {/* Buy button container */}
         <div className="flex items-center gap-1.5 flex-1 lg:flex-initial justify-end">
           <button
             onClick={() => onBuySell(scrip, "BUY")}
             className="flex-1 lg:flex-none px-3.5 py-1.5 lg:px-2.5 lg:py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs lg:text-[10px] font-bold rounded-lg lg:rounded cursor-pointer transition-all text-center"
           >
             BUY
-          </button>
-          <button
-            onClick={() => onBuySell(scrip, "SELL")}
-            className="flex-1 lg:flex-none px-3.5 py-1.5 lg:px-2.5 lg:py-1 bg-rose-500 hover:bg-rose-400 text-slate-950 text-xs lg:text-[10px] font-bold rounded-lg lg:rounded cursor-pointer transition-all text-center"
-          >
-            SELL
           </button>
         </div>
       </div>

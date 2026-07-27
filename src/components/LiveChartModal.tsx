@@ -446,12 +446,6 @@ export function LiveChartModal({
                 >
                   BUY
                 </button>
-                <button
-                  onClick={() => onOpenQuickOrder(scrip || position, "SELL")}
-                  className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-bold rounded-lg cursor-pointer transition-all"
-                >
-                  SELL
-                </button>
               </div>
             )}
 
