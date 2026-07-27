@@ -156,8 +156,11 @@ export function LiveChartModal({
 
     // Fetch real historical candles from backend API
     const targetToken = scrip?.scriptToken || scrip?.token || scrip?.tok || position?.scriptToken || position?.token || position?.tok || scrip?.symbol || "";
+    const targetSymbol = scrip?.tradingSymbol || scrip?.symbol || scrip?.scripRefKey || position?.symbol || "";
+    const targetExchange = scrip?.exchange || position?.exchange || "";
+    const targetSegment = scrip?.segment || position?.segment || "";
 
-    fetch(`/api/scrips/history?token=${encodeURIComponent(targetToken)}&timeframe=${timeframe}`)
+    fetch(`/api/scrips/history?token=${encodeURIComponent(targetToken)}&symbol=${encodeURIComponent(targetSymbol)}&exchange=${encodeURIComponent(targetExchange)}&segment=${encodeURIComponent(targetSegment)}&timeframe=${timeframe}`)
       .then((res) => (res.ok ? res.json() : []))
       .then((historyData: any[]) => {
         if (!isMounted) return;
