@@ -264,32 +264,6 @@ export function Navbar({
 
           <div className="h-3 w-px bg-slate-800 shrink-0" />
 
-          {/* BANK NIFTY */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 font-mono">
-              BANK NIFTY
-            </span>
-            {getQuote("Bank Nifty") || getQuote("BANKNIFTY") ? (
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-mono font-bold text-slate-100">
-                  {fmt((getQuote("Bank Nifty") || getQuote("BANKNIFTY"))!.ltp)}
-                </span>
-                <span
-                  className={`text-[10px] font-bold font-mono ${(getQuote("Bank Nifty") || getQuote("BANKNIFTY"))!.change >= 0 ? "text-emerald-400" : "text-rose-400"}`}
-                >
-                  {(getQuote("Bank Nifty") || getQuote("BANKNIFTY"))!.change >= 0 ? "+" : ""}
-                  {(getQuote("Bank Nifty") || getQuote("BANKNIFTY"))!.change.toFixed(2)} ({(getQuote("Bank Nifty") || getQuote("BANKNIFTY"))!.changePct.toFixed(2)}%)
-                </span>
-              </div>
-            ) : (
-              <span className="text-[10px] text-slate-600 animate-pulse font-mono">
-                loading...
-              </span>
-            )}
-          </div>
-
-          <div className="h-3 w-px bg-slate-800 shrink-0" />
-
           {/* SENSEX */}
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-[10px] uppercase font-extrabold tracking-wider text-slate-500 font-mono">
