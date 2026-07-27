@@ -51,25 +51,32 @@ export function LiveChartModal({
       .catch(() => {});
   }, []);
 
-  const handleConnectUpstox = () => {
-    if (upstoxAuthUrl) {
-      window.open(upstoxAuthUrl, "_blank");
-    } else {
-      const manualToken = prompt("Enter Upstox Access Token:");
-      if (manualToken && manualToken.trim()) {
-        fetch("/api/upstox/token", {
+  const handleConnectUpstox = async () => {
+    try {
+      const res = await fetch("/api/upstox/auth-url").then((r) => (r.ok ? r.json() : null));
+      if (res && res.authUrl && res.authUrl.trim()) {
+        window.open(res.authUrl, "_blank");
+        return;
+      }
+    } catch (_) {}
+
+    const manualToken = prompt(
+      "UPSTOX_API_KEY is not set in your backend .env yet.\n\nTo use 1-click login, add UPSTOX_API_KEY and UPSTOX_API_SECRET to your backend .env file.\n\nOr paste your Upstox Access Token manually below:"
+    );
+
+    if (manualToken && manualToken.trim()) {
+      try {
+        const resp = await fetch("/api/upstox/token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ accessToken: manualToken.trim() }),
-        })
-          .then((res) => res.json())
-          .then((res) => {
-            if (res.hasToken) {
-              setUpstoxConnected(true);
-              window.location.reload();
-            }
-          });
-      }
+        }).then((r) => r.json());
+
+        if (resp && resp.hasToken) {
+          setUpstoxConnected(true);
+          window.location.reload();
+        }
+      } catch (_) {}
     }
   };
 
