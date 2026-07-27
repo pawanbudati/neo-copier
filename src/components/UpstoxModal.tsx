@@ -87,12 +87,48 @@ export function UpstoxModal({ isOpen, onClose, onSuccess }: UpstoxModalProps) {
     }
   };
 
-  const handleOAuthLogin = () => {
+  const handleOAuthLogin = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (!apiKey.trim()) {
-      alert("Please enter and save your Upstox API Key (Client ID) first.");
+      setStatusMsg({ text: "Please enter your Upstox API Key (Client ID) first.", type: "error" });
       return;
     }
-    window.location.href = "/api/upstox/login";
+
+    setSaving(true);
+    setStatusMsg(null);
+    try {
+      // 1. Save config first so server has latest API key, secret, and redirect URI
+      const res = await fetch("/api/upstox/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKey: apiKey.trim(),
+          apiSecret: apiSecret.trim(),
+          redirectUri: redirectUri.trim(),
+          accessToken: accessToken.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setHasToken(!!updated.hasToken);
+        setIsConfigured(!!updated.isConfigured);
+
+        if (updated.authUrl && updated.authUrl.trim()) {
+          // Redirect directly to Upstox's official OAuth login URL
+          window.location.href = updated.authUrl;
+          return;
+        } else {
+          setStatusMsg({ text: "Upstox API Key is invalid or empty.", type: "error" });
+        }
+      } else {
+        setStatusMsg({ text: "Failed to save configuration before login.", type: "error" });
+      }
+    } catch (err: any) {
+      setStatusMsg({ text: err.message || "Failed to initiate Upstox OAuth login", type: "error" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
