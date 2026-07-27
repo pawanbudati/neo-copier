@@ -9,6 +9,7 @@ import {
   Trash2,
   RefreshCw,
   Database,
+  Zap,
 } from "lucide-react";
 import { AccountSummary, AppSettings, ScripStatusState } from "../types";
 
@@ -29,6 +30,9 @@ interface AccountsViewProps {
   // Scrip Master
   scripStatus: ScripStatusState;
   onOpenScripModal: () => void;
+
+  // Upstox Integration
+  onOpenUpstoxModal?: () => void;
 }
 
 export function AccountsView({
@@ -44,9 +48,39 @@ export function AccountsView({
   onUpdateSettings,
   scripStatus,
   onOpenScripModal,
+  onOpenUpstoxModal,
 }: AccountsViewProps) {
   return (
     <div className="space-y-6">
+      {/* Upstox Historical Engine Integration Card */}
+      {onOpenUpstoxModal && (
+        <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 sm:p-5 backdrop-blur-sm flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl flex items-center justify-center shrink-0">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-100 font-mono flex items-center gap-2">
+                <span>Upstox Historical Chart Engine</span>
+                <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-mono">
+                  Multi-Broker Hybrid
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Manage Upstox credentials, edit API details & perform 1-click daily OAuth login for authentic 1m/5m/15m charts.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={onOpenUpstoxModal}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-2 cursor-pointer transition-all shadow-lg hover:scale-105 active:scale-95 shrink-0 ml-auto"
+          >
+            <Zap className="w-4 h-4 fill-slate-950" />
+            <span>Manage Upstox & Login</span>
+          </button>
+        </div>
+      )}
       {/* Top Section: Copier Settings & Scrip Cache Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Copier Controls */}

@@ -5,6 +5,7 @@ import { AccountsView } from "./components/AccountsView";
 import { LogsView } from "./components/LogsView";
 import { LiveChartModal } from "./components/LiveChartModal";
 import { AccountModal } from "./components/AccountModal";
+import { UpstoxModal } from "./components/UpstoxModal";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { KotakLiveFeed } from "./kotakWebSocket";
 import {
@@ -1280,6 +1281,7 @@ export default function App() {
   } | null>(null);
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showUpstoxModal, setShowUpstoxModal] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [theme, setTheme] = useState<"classic" | "modern">(
     () => (localStorage.getItem("neo-theme") as "classic" | "modern") || "classic"
@@ -2912,6 +2914,7 @@ export default function App() {
           localStorage.removeItem("admin-token");
           setAuthToken(null);
         }}
+        onOpenUpstoxModal={() => setShowUpstoxModal(true)}
       />
 
       {/* Main Multi-Screen Content Container */}
@@ -2987,6 +2990,7 @@ export default function App() {
             onUpdateSettings={handleUpdateSettings}
             scripStatus={scripStatus}
             onOpenScripModal={() => setIsScripModalOpen(true)}
+            onOpenUpstoxModal={() => setShowUpstoxModal(true)}
           />
         )}
 
@@ -3081,6 +3085,7 @@ export default function App() {
             setSelectedChartScrip(null);
             setOrderDialog({ scrip, side });
           }}
+          onOpenUpstoxModal={() => setShowUpstoxModal(true)}
         />
       )}
 
@@ -3106,7 +3111,12 @@ export default function App() {
         multiplier={multiplier}
         setMultiplier={setMultiplier}
         savingAccount={savingAccount}
-        masterExists={!!masterAcc}
+        masterExists={!!masterAcc && masterAcc.id !== editingAccountId}
+      />
+
+      <UpstoxModal
+        isOpen={showUpstoxModal}
+        onClose={() => setShowUpstoxModal(false)}
       />
     </div>
   );

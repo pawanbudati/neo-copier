@@ -19,6 +19,7 @@ interface LiveChartModalProps {
   position?: any;
   onClose: () => void;
   onOpenQuickOrder?: (scrip: any, side: "BUY" | "SELL") => void;
+  onOpenUpstoxModal?: () => void;
 }
 
 export function LiveChartModal({
@@ -27,6 +28,7 @@ export function LiveChartModal({
   position,
   onClose,
   onOpenQuickOrder,
+  onOpenUpstoxModal,
 }: LiveChartModalProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -51,33 +53,12 @@ export function LiveChartModal({
       .catch(() => {});
   }, []);
 
-  const handleConnectUpstox = async () => {
-    try {
-      const res = await fetch("/api/upstox/auth-url").then((r) => (r.ok ? r.json() : null));
-      if (res && res.isConfigured && res.authUrl) {
-        window.location.href = "/api/upstox/login";
-        return;
-      }
-    } catch (_) {}
-
-    const manualToken = prompt(
-      "UPSTOX_API_KEY is not set in your backend .env yet.\n\nTo use 1-click login, add UPSTOX_API_KEY and UPSTOX_API_SECRET to your backend .env file.\n\nOr paste your Upstox Access Token manually below:"
-    );
-
-    if (manualToken && manualToken.trim()) {
-      try {
-        const resp = await fetch("/api/upstox/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accessToken: manualToken.trim() }),
-        }).then((r) => r.json());
-
-        if (resp && resp.hasToken) {
-          setUpstoxConnected(true);
-          window.location.reload();
-        }
-      } catch (_) {}
+  const handleConnectUpstox = () => {
+    if (onOpenUpstoxModal) {
+      onOpenUpstoxModal();
+      return;
     }
+    window.location.href = "/api/upstox/login";
   };
 
   // In-memory candle tracking for real-time WebSocket updates

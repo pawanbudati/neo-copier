@@ -22,6 +22,7 @@ interface NavbarProps {
   masterAccount?: AccountSummary;
   authToken: string | null;
   onLogout: () => void;
+  onOpenUpstoxModal?: () => void;
 }
 
 export function Navbar({
@@ -36,6 +37,7 @@ export function Navbar({
   masterAccount,
   authToken,
   onLogout,
+  onOpenUpstoxModal,
 }: NavbarProps) {
   const fmt = (n: number) =>
     n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -140,6 +142,18 @@ export function Navbar({
               <Power className="w-3.5 h-3.5" />
               <span className="text-[11px] sm:text-xs">{powerOn ? "ON" : "OFF"}</span>
             </button>
+
+            {/* Upstox Modal Button */}
+            {onOpenUpstoxModal && (
+              <button
+                onClick={onOpenUpstoxModal}
+                className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-400 hover:text-amber-300 text-xs font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1.5 shrink-0"
+                title="Upstox Chart Integration Settings & 1-Click Login"
+              >
+                <Zap className="w-3.5 h-3.5 fill-amber-400/20" />
+                <span className="hidden sm:inline">Upstox</span>
+              </button>
+            )}
 
             {/* Theme switcher */}
             <button
