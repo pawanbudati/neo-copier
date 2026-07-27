@@ -10,7 +10,7 @@ import {
   ColorType,
   LineStyle,
 } from "lightweight-charts";
-import { Maximize2, Minimize2, TrendingUp, TrendingDown, BarChart2 } from "lucide-react";
+import { Maximize2, Minimize2, TrendingUp, TrendingDown, BarChart2, Zap } from "lucide-react";
 import { QuoteData, ScripInfo } from "../types";
 
 interface LiveChartModalProps {
@@ -485,6 +485,30 @@ export function LiveChartModal({
         {/* Chart Canvas Area */}
         <div className="flex-1 w-full relative min-h-[350px]">
           <div ref={chartContainerRef} className="w-full h-full absolute inset-0" />
+
+          {/* Upstox Login Required Overlay when past candles cannot be fetched */}
+          {upstoxConnected === false && (
+            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center space-y-3">
+              <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-2xl flex items-center justify-center shadow-lg">
+                <Zap className="w-6 h-6 animate-pulse" />
+              </div>
+              <div className="max-w-md space-y-1">
+                <h4 className="text-sm font-bold text-slate-100 uppercase tracking-wide">
+                  Upstox Login Required for Historical Candles
+                </h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Kotak Neo API does not support historical candles. Connect Upstox once daily to load authentic 1m, 5m, 15m & 1h historical charts.
+                </p>
+              </div>
+              <button
+                onClick={handleConnectUpstox}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-xl flex items-center gap-2 hover:scale-105 active:scale-95"
+              >
+                <Zap className="w-4 h-4 fill-slate-950" />
+                <span>Connect Upstox for Historical Charts</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
