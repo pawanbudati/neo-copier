@@ -859,19 +859,76 @@ function QuickOrderDialog({
             </div>
           )}
 
-          {/* Quantity */}
-          <div>
-            <label className="block text-xs text-slate-400 font-medium mb-1">
-              Quantity (Master lots)
-            </label>
-            <input
-              type="number"
-              min={1}
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100 font-mono text-sm focus:outline-none focus:border-teal-500"
-            />
-          </div>
+          {/* Quantity Controls (Multiples of Lot Size) */}
+          {(() => {
+            const lot = scrip.lotSize && scrip.lotSize > 0 ? scrip.lotSize : 1;
+            const currentQty = Number(qty) || lot;
+            const lotCount = Math.max(1, Math.round(currentQty / lot));
+
+            return (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-slate-400 font-medium">
+                    Quantity (Lot Size: {lot})
+                  </label>
+                  <span className="text-[11px] font-bold text-teal-400 font-mono">
+                    {lotCount} Lot(s)
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = Math.max(lot, currentQty - lot);
+                      setQty(String(next));
+                    }}
+                    className="w-10 h-10 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 font-bold rounded-xl text-lg flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={lot}
+                    step={lot}
+                    value={qty}
+                    onChange={(e) => setQty(e.target.value)}
+                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono text-sm text-center focus:outline-none focus:border-teal-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = currentQty + lot;
+                      setQty(String(next));
+                    }}
+                    className="w-10 h-10 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 font-bold rounded-xl text-lg flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                  >
+                    +
+                  </button>
+                </div>
+                {/* Quick Lot Chips */}
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  {[1, 2, 3, 4, 5].map((multiplier) => {
+                    const targetQty = lot * multiplier;
+                    const isSelected = currentQty === targetQty;
+                    return (
+                      <button
+                        key={multiplier}
+                        type="button"
+                        onClick={() => setQty(String(targetQty))}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold font-mono border cursor-pointer transition-all ${
+                          isSelected
+                            ? "bg-teal-500/20 text-teal-300 border-teal-500/40 shadow-sm shadow-teal-500/20"
+                            : "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200"
+                        }`}
+                      >
+                        {multiplier}x ({targetQty})
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Order Type */}
           <div>
