@@ -1807,10 +1807,10 @@ export default function App() {
   // Subscribe to watchlist tokens, search result tokens, active positions, plus Nifty and Sensex indices
   useEffect(() => {
     if (!authToken) return;
-    const watchlistTokens = watchlist.map((w) => w.scriptToken);
-    const searchTokens = (leftTab === "search" && subscribeOnSearch) ? searchResults.map((s) => s.scriptToken) : [];
-    const dialogToken = orderDialog ? [orderDialog.scrip.scriptToken] : [];
-    const positionTokens = positions.flatMap((acc) => (acc.positions || []).map((p: any) => p.scriptToken));
+    const watchlistTokens = watchlist.map((w) => w.scriptToken || w.tradingSymbol).filter(Boolean);
+    const searchTokens = searchResults.map((s) => s.scriptToken || s.tradingSymbol || s.scripRefKey).filter(Boolean);
+    const dialogToken = orderDialog ? [orderDialog.scrip.scriptToken || orderDialog.scrip.tradingSymbol].filter(Boolean) : [];
+    const positionTokens = positions.flatMap((acc) => (acc.positions || []).map((p: any) => p.scriptToken || p.symbol)).filter(Boolean);
     const allTokens = [...new Set([...watchlistTokens, ...searchTokens, ...dialogToken, ...positionTokens, "Nifty 50", "SENSEX"])];
     subscribeToTokens(allTokens);
   }, [watchlist, searchResults, positions, leftTab, subscribeToTokens, powerOn, authToken, subscribeOnSearch, orderDialog]);

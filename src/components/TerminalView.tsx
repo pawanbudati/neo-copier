@@ -295,8 +295,9 @@ export function TerminalView({
                             {item.exchange}
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
-                          Lot Size: {item.lotSize}
+                        <p className="text-[10px] text-slate-500 mt-0.5 font-mono flex items-center gap-2 flex-wrap">
+                          <span>Lot: {item.lotSize}</span>
+                          {item.expiry && <span className="text-cyan-400 font-bold">• Exp: {item.expiry}</span>}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
